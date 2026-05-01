@@ -15,14 +15,16 @@ import {
   Minus,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
+  Accessibility,
   Volume2,
-  ZapOff,
-  Search,
   Moon,
   Sun,
-  LogOut,
-  LogIn
+  Zap,
+  ZapOff,
+  Palette,
+  Search,
+  PlusCircle,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from './lib/utils';
 
@@ -31,115 +33,132 @@ interface AppData {
   id: string;
   label: string;
   color: string;
-  createdAt: number;
+  icon: React.ReactNode;
+  action: () => void;
 }
-
-interface CursorPos {
-  x: number;
-  y: number;
-}
-
-const translations = {
-  pt: {
-    title: "Acesso Livre",
-    settings: "Configurações",
-    done: "CONCLUIR",
-    back: "VOLTAR",
-    help: "AJUDA",
-    home: "INÍCIO",
-    menu: "MENU",
-    trackpad: "TRACKPAD",
-    dwellOn: "CLIQUE AUTOMÁTICO ON",
-    dwellOff: "CLIQUE AUTOMÁTICO OFF",
-    assistiveOn: "MODO ASSISTIVO ON",
-    assistiveOff: "MODO ASSISTIVO OFF",
-  },
-  en: {
-    title: "Free Access",
-    settings: "Settings",
-    done: "DONE",
-    back: "BACK",
-    help: "HELP",
-    home: "HOME",
-    menu: "MENU",
-    trackpad: "TRACKPAD",
-    dwellOn: "AUTOCLICK ON",
-    dwellOff: "AUTOCLICK OFF",
-    assistiveOn: "ASSISTIVE MODE ON",
-    assistiveOff: "ASSISTIVE MODE OFF",
-  },
-  es: {
-    title: "Acceso Libre",
-    settings: "Ajustes",
-    done: "HECHO",
-    back: "VOLVER",
-    help: "AYUDA",
-    home: "INICIO",
-    menu: "MENÚ",
-    trackpad: "TRACKPAD",
-    dwellOn: "AUTOCLIC ON",
-    dwellOff: "AUTOCLIC OFF",
-    assistiveOn: "MODO ASISTIVO ON",
-    assistiveOff: "MODO ASISTIVO OFF",
-  }
-};
 
 export default function App() {
-  const [lang, setLang] = useState<'pt' | 'en' | 'es'>(() => {
-    return (localStorage.getItem('launcher_lang') as 'pt' | 'en' | 'es') || 'pt';
+  // --- Accessibility States ---
+  const [fontSize, setFontSize] = useState<number>(() => {
+    return parseInt(localStorage.getItem('launcher_fontSize') || '24');
   });
-  const t = translations[lang];
-
-  const [cursorPos, setCursorPos] = useState<CursorPos>({ x: 50, y: 50 });
-  const [isClicking, setIsClicking] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [highContrast, setHighContrast] = useState(() => localStorage.getItem('launcher_highContrast') === 'true');
-  const [dwellEnabled, setDwellEnabled] = useState(() => localStorage.getItem('launcher_dwellEnabled') !== 'false');
-  const [isAssistiveMode, setIsAssistiveMode] = useState(() => localStorage.getItem('launcher_assistiveMode') !== 'false');
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('launcher_darkMode') === 'true');
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(() => localStorage.getItem('launcher_reduceMotion') === 'true');
+  const [colorblindMode, setColorblindMode] = useState(() => localStorage.getItem('launcher_colorblindMode') === 'true');
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // --- Core States ---
+  const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
+  const [isClicking, setIsClicking] = useState(false);
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [dwellEnabled, setDwellEnabled] = useState(true);
   const [dwellProgress, setDwellProgress] = useState(0);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
 
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const dwellProgressRef = useRef(0);
 
-  const cursorX = useSpring(useMotionValue(50), { stiffness: 450, damping: 35 });
-  const cursorY = useSpring(useMotionValue(50), { stiffness: 450, damping: 35 });
+  // --- Animation Refs ---
+  const cursorX = useSpring(useMotionValue(50), { 
+    stiffness: reduceMotion ? 1000 : 450, 
+    damping: reduceMotion ? 100 : 35 
+  });
+  const cursorY = useSpring(useMotionValue(50), { 
+    stiffness: reduceMotion ? 1000 : 450, 
+    damping: reduceMotion ? 100 : 35 
+  });
 
-  const [apps] = useState<AppData[]>([
-    { id: 'app-phone', label: lang === 'pt' ? 'TELEFONE' : 'PHONE', color: 'bg-[#22c55e]', createdAt: Date.now() },
-    { id: 'app-whatsapp', label: 'WHATSAPP', color: 'bg-[#059669]', createdAt: Date.now() + 1 },
-    { id: 'app-emergency', label: lang === 'pt' ? 'EMERGÊNCIA' : 'EMERGENCY', color: 'bg-[#ef4444]', createdAt: Date.now() + 2 },
-    { id: 'app-family', label: lang === 'pt' ? 'FAMÍLIA' : 'FAMILY', color: 'bg-[#a855f7]', createdAt: Date.now() + 3 },
-  ]);
-
+  // --- Utilities ---
   const triggerHaptic = (pattern: number[]) => {
     if ('vibrate' in navigator) navigator.vibrate(pattern);
   };
 
-  const saveSettings = (k: string, v: any) => localStorage.setItem(`launcher_${k}`, String(v));
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'pt-BR';
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const handleAction = (label: string, url: string) => {
+    triggerHaptic([50, 30, 50]);
+    speak(`Abrindo ${label}`);
+    setTimeout(() => {
+      window.location.href = url;
+    }, 500);
+  };
+
+  const apps: AppData[] = [
+    { 
+      id: 'app-phone', 
+      label: 'TELEFONE', 
+      color: 'bg-[#22c55e]', 
+      icon: <Phone size={56} strokeWidth={3} />,
+      action: () => handleAction('Telefone', 'tel:')
+    },
+    { 
+      id: 'app-whatsapp', 
+      label: 'WHATSAPP', 
+      color: 'bg-[#059669]', 
+      icon: <MessageSquare size={56} strokeWidth={3} />,
+      action: () => handleAction('WhatsApp', 'https://wa.me/')
+    },
+    { 
+      id: 'app-emergency', 
+      label: 'EMERGÊNCIA', 
+      color: 'bg-[#ef4444]', 
+      icon: <AlertCircle size={56} strokeWidth={3} />,
+      action: () => handleAction('Emergência', 'tel:192')
+    },
+    { 
+      id: 'app-family', 
+      label: 'FAMÍLIA', 
+      color: 'bg-[#a855f7]', 
+      icon: <Home size={56} strokeWidth={3} />,
+      action: () => handleAction('Família', 'tel:')
+    },
+  ];
 
   const handleClick = useCallback(() => {
     setIsClicking(true);
-    triggerHaptic([50]);
+    triggerHaptic([60]);
     setTimeout(() => setIsClicking(false), 200);
 
-    const xPx = (cursorPos.x / 100) * window.innerWidth;
     const headerHeight = 80;
     const navHeight = 96;
-    const controlsHeight = window.innerHeight * 0.3;
+    const controlsHeight = window.innerHeight * 0.35;
     const mainAreaHeight = window.innerHeight - headerHeight - navHeight - controlsHeight;
     
+    const xPx = (cursorPos.x / 100) * window.innerWidth;
     const yPx = (cursorPos.y / 100) * mainAreaHeight + headerHeight;
     const el = document.elementFromPoint(xPx, yPx);
+    
     if (el) {
       const target = el.closest('button') || el.closest('a');
       if (target) (target as HTMLElement).click();
     }
   }, [cursorPos]);
+
+  const handleTrackpadMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    const isTouch = 'touches' in e;
+    const touch = isTouch ? e.touches[0] : (e as React.MouseEvent);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    
+    const x = ((touch.clientX - rect.left) / rect.width) * 100;
+    const y = ((touch.clientY - rect.top) / rect.height) * 100;
+    
+    setCursorPos({ 
+      x: Math.max(0, Math.min(100, x)), 
+      y: Math.max(0, Math.min(100, y)) 
+    });
+  }, []);
 
   useEffect(() => {
     cursorX.set(cursorPos.x);
@@ -147,7 +166,7 @@ export default function App() {
 
     const headerHeight = 80;
     const navHeight = 96;
-    const controlsHeight = window.innerHeight * 0.3;
+    const controlsHeight = window.innerHeight * 0.35;
     const mainAreaHeight = window.innerHeight - headerHeight - navHeight - controlsHeight;
     
     const xPx = (cursorPos.x / 100) * window.innerWidth;
@@ -156,21 +175,21 @@ export default function App() {
     const target = el?.closest('button') || el?.closest('a');
     const elementId = target?.id || null;
 
-    if (elementId && elementId !== hoveredId && !elementId.includes('trackpad')) {
+    if (elementId && elementId !== hoveredId && !elementId.includes('tracks')) {
       setHoveredId(elementId);
-      triggerHaptic([15]);
+      triggerHaptic([10]);
     } else if (!elementId && hoveredId) {
       setHoveredId(null);
     }
 
-    if (dwellEnabled && elementId && !elementId.includes('trackpad') && !elementId.includes('mic')) {
+    if (dwellEnabled && elementId && !elementId.includes('tracks') && !elementId.includes('mic')) {
       if (dwellTimerRef.current && hoveredId === elementId) return;
       if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
 
       dwellProgressRef.current = 0;
       setDwellProgress(0);
       dwellTimerRef.current = setInterval(() => {
-        dwellProgressRef.current += 4;
+        dwellProgressRef.current += 5;
         setDwellProgress(dwellProgressRef.current);
         if (dwellProgressRef.current >= 100) {
           handleClick();
@@ -179,7 +198,7 @@ export default function App() {
           dwellProgressRef.current = 0;
           setDwellProgress(0);
         }
-      }, 60);
+      }, 75);
     } else {
       if (dwellTimerRef.current) {
         clearInterval(dwellTimerRef.current);
@@ -189,151 +208,310 @@ export default function App() {
     }
   }, [cursorPos, dwellEnabled, hoveredId, handleClick, cursorX, cursorY]);
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    localStorage.setItem('launcher_darkMode', (!isDarkMode).toString());
+    triggerHaptic([30, 30]);
+  };
+
+  const adjustFontSize = (delta: number) => {
+    const newSize = Math.max(16, Math.min(48, fontSize + delta));
+    setFontSize(newSize);
+    localStorage.setItem('launcher_fontSize', newSize.toString());
+    triggerHaptic([20]);
+  };
+
+  const toggleReduceMotion = () => {
+    setReduceMotion(!reduceMotion);
+    localStorage.setItem('launcher_reduceMotion', (!reduceMotion).toString());
+    triggerHaptic([30]);
+  };
+
+  const toggleColorblindMode = () => {
+    setColorblindMode(!colorblindMode);
+    localStorage.setItem('launcher_colorblindMode', (!colorblindMode).toString());
+    triggerHaptic([30]);
+  };
+
   return (
-    <div className={cn(
-      "fixed inset-0 h-[100dvh] flex flex-col bg-[#e5e7eb] font-sans transition-colors duration-500",
-      isDarkMode && "bg-zinc-950",
-      highContrast && "bg-black"
-    )}>
+    <div 
+      className={cn(
+        "fixed inset-0 h-[100dvh] flex flex-col overflow-hidden select-none transition-colors duration-500 font-sans safe-top safe-bottom",
+        isDarkMode ? "bg-black" : "bg-[#e5e7eb]",
+        colorblindMode && "grayscale contrast-125"
+      )}
+      style={{ fontSize: `${fontSize}px` }}
+    >
       {/* Header */}
       <header className={cn(
-        "h-20 bg-white border-b-[4px] border-black flex items-center justify-between px-6 z-[60]",
-        isDarkMode && "bg-zinc-900 border-zinc-700",
-        highContrast && "bg-black border-white"
+        "h-20 border-b-[4px] flex items-center justify-between px-6 z-[100]",
+        isDarkMode ? "bg-zinc-900 border-white/20 text-white" : "bg-white border-black text-black"
       )}>
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-yellow-400 rounded-full border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
-            <MousePointer2 className="rotate-45 fill-black" size={24} />
-          </div>
-          <h1 className={cn("font-black italic text-2xl tracking-tighter text-gray-900 uppercase", (isDarkMode || highContrast) && "text-white")}>ACESSO LIVRE</h1>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <button 
+            id="access-btn"
+            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); }}
+            className="w-12 h-12 flex-shrink-0 bg-yellow-400 rounded-2xl border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+          >
+            <Accessibility size={28} strokeWidth={3} className="text-black" />
+          </button>
+          <h1 className="font-black italic text-xl sm:text-2xl tracking-tighter uppercase leading-none truncate">
+            ACESSO LIVRE
+          </h1>
         </div>
-        <button id="settings-btn" onClick={() => setShowSettings(true)} className={cn("w-14 h-14 bg-white border-[4px] border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all", (isDarkMode || highContrast) && "bg-zinc-800 border-white text-white")}>
+        <button 
+          id="settings-btn"
+          onClick={() => triggerHaptic([50])}
+          className={cn(
+            "w-14 h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
+            isDarkMode ? "bg-zinc-800 border-white text-white shadow-white/20" : "bg-white border-black"
+          )}
+        >
           <Settings size={32} strokeWidth={2.5} />
         </button>
       </header>
 
-      {/* Grid Area */}
-      <main className="flex-1 p-6 relative overflow-hidden z-10">
-        <motion.div animate={{ scale: zoomScale, x: panPos.x, y: panPos.y }} className="grid grid-cols-2 gap-6 h-full">
+      {/* Main Grid Area */}
+      <main className="flex-1 p-6 z-10 overflow-hidden">
+        <motion.div 
+          animate={{ scale: zoomScale, x: panPos.x, y: panPos.y }}
+          className="grid grid-cols-2 gap-6 h-full"
+        >
           {apps.map(app => (
-            <button key={app.id} id={app.id} className={cn(
-              "relative flex flex-col items-center justify-center gap-4 rounded-[40px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all",
-              app.color,
-              hoveredId === app.id && "scale-105 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]",
-              highContrast && "bg-black text-white border-white",
-              isDarkMode && !app.color.includes('bg-') && "bg-zinc-800 text-white"
-            )}>
-              {app.id === 'app-phone' && <Phone size={64} strokeWidth={2.5} />}
-              {app.id === 'app-whatsapp' && <MessageSquare size={64} strokeWidth={2.5} />}
-              {app.id === 'app-emergency' && <Plus size={64} strokeWidth={2.5} />}
-              {app.id === 'app-family' && <Home size={64} strokeWidth={2.5} />}
-              <span className="font-black text-xl tracking-tight uppercase">{app.label}</span>
-              <div className="absolute top-4 right-4 w-8 h-8 bg-[#ef4444] rounded-full border-[3px] border-black flex items-center justify-center">
-                <X size={18} strokeWidth={4} className="text-white" />
+            <button
+              key={app.id}
+              id={app.id}
+              onClick={app.action}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-2 rounded-[40px] border-[4px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all h-full aspect-square max-h-56 mx-auto w-full",
+                app.color,
+                isDarkMode ? "border-white shadow-white/10" : "border-black",
+                hoveredId === app.id ? "scale-[1.05] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]" : "scale-100"
+              )}
+            >
+              <div className="text-black mt-2">
+                {app.icon}
+              </div>
+              <span className="font-black text-lg sm:text-xl tracking-tight uppercase text-black mb-2 px-2">
+                {app.label}
+              </span>
+              <div className="absolute top-6 right-6 w-10 h-10 bg-[#ef4444] rounded-full border-[3px] border-black flex items-center justify-center shadow-sm">
+                <X size={24} strokeWidth={4} className="text-white" />
               </div>
             </button>
           ))}
         </motion.div>
       </main>
 
-      {/* Nav Buttons */}
+      {/* Nav Bar */}
       <nav className={cn(
-        "h-24 bg-white border-y-[4px] border-black grid grid-cols-4 z-40",
-        isDarkMode && "bg-zinc-900 border-zinc-700",
-        highContrast && "bg-black border-white"
+        "h-24 border-y-[4px] grid grid-cols-4 z-[100]",
+        isDarkMode ? "bg-zinc-900 border-white/20 text-white" : "bg-white border-black text-black"
       )}>
         {[
-          { id: 'nav-back', label: t.back, icon: <ArrowLeft size={32} /> },
-          { id: 'nav-help', label: t.help, icon: <Search size={32} /> },
-          { id: 'nav-home', label: t.home, icon: <Home size={32} /> },
-          { id: 'nav-menu', label: t.menu, icon: <Menu size={32} /> },
+          { id: 'nav-back', label: 'VOLTAR', icon: <ArrowLeft size={36} /> },
+          { id: 'nav-help', label: 'AJUDA', icon: <Search size={36} /> },
+          { id: 'nav-home', label: 'INÍCIO', icon: <Home size={36} /> },
+          { id: 'nav-menu', label: 'MENU', icon: <Menu size={36} /> },
         ].map(item => (
-          <button key={item.id} id={item.id} className={cn("flex flex-col items-center justify-center border-r-[2px] last:border-r-0 border-black active:bg-gray-100 uppercase", (isDarkMode || highContrast) && "text-white hover:bg-zinc-800 border-zinc-700")}>
+          <button
+            key={item.id}
+            id={item.id}
+            className={cn(
+              "flex flex-col items-center justify-center border-r-[2px] last:border-r-0 active:bg-gray-100 transition-colors",
+              isDarkMode ? "border-white/10 active:bg-zinc-800" : "border-black active:bg-gray-100"
+            )}
+          >
             {item.icon}
-            <span className="font-black text-[10px] mt-1 tracking-tight">{item.label}</span>
+            <span className="font-black text-xs mt-1 uppercase tracking-wider">{item.label}</span>
           </button>
         ))}
       </nav>
 
-      {/* Assistive controls */}
+      {/* Assistive Controls Section */}
       <div className={cn(
-        "h-[30%] bg-white grid grid-cols-[110px_1fr_110px] z-40 border-black",
-        isDarkMode && "bg-zinc-900",
-        highContrast && "bg-black border-white"
+        "h-[35%] grid grid-cols-[110px_1fr_110px] border-b-[4px] z-[100]",
+        isDarkMode ? "bg-black border-white/20" : "bg-[#e5e7eb] border-black"
       )}>
-        <div className={cn("border-r-[4px] border-black flex items-center justify-center p-4", highContrast && "border-white")}>
-          <button id="mic-btn" onClick={() => setIsVoiceActive(!isVoiceActive)} className={cn("w-16 h-16 rounded-full border-[4px] border-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors", isVoiceActive ? "bg-red-400 text-black" : "bg-white", (isDarkMode || highContrast) && "bg-zinc-800 border-white text-white")}>
-            {isVoiceActive ? <Mic size={32} /> : <MicOff size={32} />}
+        {/* Mic Side */}
+        <div className={cn("border-r-[4px] flex items-center justify-center", isDarkMode ? "bg-zinc-900 border-white/20" : "bg-white border-black")}>
+          <button 
+            id="mic-btn"
+            onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); }}
+            className={cn(
+              "w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all",
+              isVoiceActive ? "bg-red-400 border-black" : (isDarkMode ? "bg-zinc-800 border-white text-white" : "bg-white border-black")
+            )}
+          >
+            {isVoiceActive ? <Mic size={40} /> : <MicOff size={40} />}
           </button>
         </div>
-        <div id="trackpad-main" 
-          onMouseMove={(e) => { 
-            const rect = e.currentTarget.getBoundingClientRect(); 
-            setCursorPos({ x: ((e.clientX - rect.left) / rect.width) * 100, y: ((e.clientY - rect.top) / rect.height) * 100 }) 
-          }} 
-          onTouchMove={(e) => { 
-            const rect = e.currentTarget.getBoundingClientRect(); 
-            const t = e.touches[0]; 
-            setCursorPos({ x: ((t.clientX - rect.left) / rect.width) * 100, y: ((t.clientY - rect.top) / rect.height) * 100 }) 
-          }} 
-          onClick={handleClick} 
-          className={cn("relative bg-[#f3f4f6] flex items-center justify-center overflow-hidden", isDarkMode && "bg-zinc-800", highContrast && "bg-black")}
+
+        {/* Trackpad Area */}
+        <div 
+          id="tracks-area"
+          className={cn(
+            "relative overflow-hidden active:bg-gray-200 transition-colors flex items-center justify-center",
+            isDarkMode ? "bg-zinc-900 active:bg-zinc-800" : "bg-[#f3f4f6]"
+          )}
+          onMouseMove={handleTrackpadMove}
+          onTouchMove={handleTrackpadMove}
+          onClick={handleClick}
         >
-          <span className="font-black text-gray-400 opacity-40 tracking-[0.3em] pointer-events-none uppercase">{t.trackpad}</span>
+          <span className={cn(
+            "font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4",
+            isDarkMode ? "text-white/10" : "text-gray-300"
+          )}>
+            TRACKPAD
+          </span>
           {dwellEnabled && dwellProgress > 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <svg className="w-32 h-32 -rotate-90">
-                <circle cx="64" cy="64" r="58" fill="none" stroke="#facc15" strokeWidth="8" strokeDasharray="364" strokeDashoffset={364 - (364 * dwellProgress) / 100} className="transition-all" />
+              <svg className="w-48 h-48 rotate-[-90deg]">
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="88"
+                  fill="none"
+                  stroke="#fbbf24"
+                  strokeWidth="10"
+                  strokeDasharray="552"
+                  strokeDashoffset={552 - (552 * dwellProgress) / 100}
+                  className="transition-all duration-75"
+                />
               </svg>
             </div>
           )}
         </div>
-        <div className={cn("border-l-[4px] border-black flex flex-col bg-white", isDarkMode && "bg-zinc-900 border-zinc-700", highContrast && "bg-black border-white")}>
-          <button id="z-in" onClick={() => setZoomScale(s => Math.min(s + 0.2, 3))} className={cn("flex-1 flex items-center justify-center border-b-[2px] border-black active:bg-gray-100", (isDarkMode || highContrast) && "text-white hover:bg-zinc-800 border-zinc-700")}>
-            <ZoomIn size={32} strokeWidth={2.5} />
+
+        {/* Zoom Side */}
+        <div className={cn("border-l-[4px] flex flex-col", isDarkMode ? "bg-zinc-900 border-white/20" : "bg-white border-black")}>
+          <button 
+            id="z-in"
+            className={cn("flex-1 border-b-[2px] flex items-center justify-center active:bg-gray-100", isDarkMode ? "border-white/10" : "border-black")}
+            onClick={() => { setZoomScale(s => Math.min(s + 0.2, 3)); triggerHaptic([30]); }}
+          >
+            <ZoomIn size={44} strokeWidth={3} />
           </button>
-          <button id="z-out" onClick={() => setZoomScale(s => Math.max(s - 0.2, 0.5))} className={cn("flex-1 flex items-center justify-center active:bg-gray-100", (isDarkMode || highContrast) && "text-white hover:bg-zinc-800 border-zinc-700")}>
-            <ZoomOut size={32} strokeWidth={2.5} />
+          <button 
+            id="z-out"
+            className="flex-1 flex items-center justify-center active:bg-gray-100"
+            onClick={() => { setZoomScale(s => Math.max(s - 0.2, 0.5)); triggerHaptic([30]); }}
+          >
+            <ZoomOut size={44} strokeWidth={3} />
           </button>
         </div>
       </div>
 
       {/* Visual Cursor */}
-      <motion.div className="fixed pointer-events-none z-[1000]" style={{ left: cursorX.get() + 'vw', top: `calc(80px + ${cursorY.get()}% * (100vh - 80px - 96px - 30vh))`, x: "-50%", y: "-50%" }}>
-        <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] -rotate-[45deg]">
-          <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrast ? "white" : "#facc15"} stroke="black" strokeWidth="8" strokeLinejoin="round" />
+      <motion.div
+        className="fixed pointer-events-none z-[500]"
+        style={{
+          left: cursorX.get() + 'vw',
+          top: `calc(${80}px + ${cursorY.get()}% * (100vh - 80px - 96px - 35vh))`,
+          x: "-50%",
+          y: "-50%"
+        }}
+        animate={{ scale: isClicking ? 0.8 : 1 }}
+      >
+        <svg viewBox="0 0 100 100" className="w-[80px] h-[80px] drop-shadow-2xl transform rotate-[-45deg]">
+          <path 
+            d="M10,10 L90,50 L50,55 L45,90 Z" 
+            fill={isDarkMode ? "#fff" : "#facc15"} 
+            stroke="black" 
+            strokeWidth="10" 
+            strokeLinejoin="round"
+          />
         </svg>
       </motion.div>
 
-      {/* Settings Panel */}
+      {/* Accessibility Modal */}
       <AnimatePresence>
-        {showSettings && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-6">
-            <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} className={cn("bg-white border-[4px] border-black w-full max-w-md rounded-[40px] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden", isDarkMode && "bg-zinc-900 border-zinc-700", highContrast && "bg-black border-white")}>
-              <div className="bg-yellow-400 p-6 border-b-[4px] border-black flex justify-between items-center">
-                <span className="font-black text-2xl uppercase italic">{t.settings}</span>
-                <button onClick={() => setShowSettings(false)} className="bg-white p-2 rounded-xl border-[4px] border-black active:translate-y-1"><X size={24} strokeWidth={3} /></button>
+        {showAccessModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              className={cn(
+                "w-full max-w-2xl rounded-[48px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] overflow-hidden",
+                isDarkMode ? "bg-zinc-800 border-white text-white" : "bg-white border-black text-black"
+              )}
+            >
+              <div className="bg-yellow-400 p-8 border-b-[6px] border-black flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <Accessibility size={56} strokeWidth={3} className="text-black" />
+                  <h2 className="font-black text-4xl uppercase italic text-black">Acessibilidade</h2>
+                </div>
+                <button onClick={() => setShowAccessModal(false)} className="bg-white p-4 rounded-3xl border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <X size={40} strokeWidth={4} className="text-black" />
+                </button>
               </div>
-              <div className="p-8 flex flex-col gap-5">
-                 <button onClick={() => { setDwellEnabled(!dwellEnabled); saveSettings('dwellEnabled', !dwellEnabled) }} className={cn("w-full h-18 border-[4px] border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-colors", dwellEnabled ? 'bg-green-400 text-black' : 'bg-gray-100 text-black')}>
-                    {dwellEnabled ? t.dwellOn : t.dwellOff}
-                 </button>
-                 <button onClick={() => { setHighContrast(!highContrast); saveSettings('highContrast', !highContrast) }} className={cn("w-full h-18 border-[4px] border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-colors", highContrast ? 'bg-orange-400 text-black' : 'bg-gray-100 text-black')}>
-                    ALTO CONTRASTE {highContrast ? "ON" : "OFF"}
-                 </button>
-                 <button onClick={() => { setIsDarkMode(!isDarkMode); saveSettings('darkMode', !isDarkMode) }} className={cn("w-full h-18 border-[4px] border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-colors", isDarkMode ? 'bg-zinc-700 text-white' : 'bg-gray-100 text-black')}>
-                    MODO ESCURO {isDarkMode ? "ON" : "OFF"}
-                 </button>
-                 <div className="grid grid-cols-3 gap-3">
-                    {(['pt', 'en', 'es'] as const).map(l => (
-                      <button key={l} onClick={() => { setLang(l); saveSettings('lang', l) }} className={cn("h-14 border-[4px] border-black rounded-xl font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]", lang === l ? 'bg-yellow-400 text-black' : 'bg-white text-black')}>
-                        {l.toUpperCase()}
-                      </button>
-                    ))}
-                 </div>
+              
+              <div className="p-8 grid grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto">
+                <button 
+                  onClick={() => adjustFontSize(4)}
+                  className="h-32 rounded-3xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+                >
+                  <ZoomIn size={48} strokeWidth={4} className="text-black" />
+                  <span className="font-black uppercase text-xl text-black">Aumentar Texto</span>
+                </button>
+                <button 
+                  onClick={() => adjustFontSize(-4)}
+                  className="h-32 rounded-3xl border-[4px] border-black bg-green-400 flex flex-col items-center justify-center gap-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+                >
+                  <ZoomOut size={48} strokeWidth={4} className="text-black" />
+                  <span className="font-black uppercase text-xl text-black">Diminuir Texto</span>
+                </button>
+                <button 
+                  onClick={toggleDarkMode}
+                  className={cn(
+                    "h-32 rounded-3xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all",
+                    isDarkMode ? "bg-zinc-600 text-white" : "bg-zinc-200 text-black"
+                  )}
+                >
+                  {isDarkMode ? <Sun size={48} strokeWidth={4} /> : <Moon size={48} strokeWidth={4} />}
+                  <span className="font-black uppercase text-xl">{isDarkMode ? "Modo Claro" : "Modo Escuro"}</span>
+                </button>
+                <button 
+                  onClick={() => speak("Tela sendo lida agora para auxiliar na navegação.")}
+                  className="h-32 rounded-3xl border-[4px] border-black bg-orange-400 flex flex-col items-center justify-center gap-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+                >
+                  <Volume2 size={48} strokeWidth={4} className="text-black" />
+                  <span className="font-black uppercase text-xl text-black">Ler Tela</span>
+                </button>
+                <button 
+                  onClick={toggleReduceMotion}
+                  className={cn(
+                    "h-32 rounded-3xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all",
+                    reduceMotion ? "bg-purple-400 text-black" : "bg-gray-100 text-black"
+                  )}
+                >
+                  {reduceMotion ? <ZapOff size={48} strokeWidth={4} /> : <Zap size={48} strokeWidth={4} />}
+                  <span className="font-black uppercase text-xl">{reduceMotion ? "Menu Estático" : "Animações"}</span>
+                </button>
+                <button 
+                  onClick={toggleColorblindMode}
+                  className={cn(
+                    "h-32 rounded-3xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all",
+                    colorblindMode ? "bg-yellow-200 text-black" : "bg-white text-black"
+                  )}
+                >
+                  <Palette size={48} strokeWidth={4} className="text-black" />
+                  <span className="font-black uppercase text-xl text-black">Daltônicos</span>
+                </button>
               </div>
-              <div className="p-6 bg-gray-100 border-t-[4px] border-black flex gap-4">
-                <button onClick={() => setShowSettings(false)} className="w-full py-5 bg-black text-white font-black rounded-2xl text-xl uppercase tracking-widest active:scale-95 transition-transform">{t.done}</button>
+
+              <div className="p-8 bg-gray-100 border-t-[6px] border-black">
+                <button 
+                  onClick={() => setShowAccessModal(false)}
+                  className="w-full h-24 bg-[#ef4444] text-white rounded-[32px] border-[4px] border-black font-black uppercase text-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+                >
+                  FECHAR
+                </button>
               </div>
             </motion.div>
           </motion.div>
