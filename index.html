@@ -21,11 +21,22 @@
         left: 0;
         top: 0;
         touch-action: none;
+        cursor: none !important;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        outline: none !important;
       }
       #root {
         width: 100vw;
         height: 100dvh;
         position: relative;
+        cursor: none !important;
+      }
+      *:focus {
+        outline: none !important;
+        box-shadow: none !important;
       }
     </style>
   </head>

@@ -392,6 +392,27 @@ export default function App() {
     }
   };
 
+  // --- System Initialization (Force Hide Mouse & Absolute Touch) ---
+  useEffect(() => {
+    // Force hide native pointer and block context menus
+    document.body.style.cursor = 'none';
+    const handleNoContext = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener('contextmenu', handleNoContext);
+
+    // Disable default focus behavior on touch to prevent "Snap-to-Element"
+    const handleTouchStart = () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    };
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    return () => {
+      document.removeEventListener('contextmenu', handleNoContext);
+      document.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
+
   const t = TRANSLATIONS[language];
 
   const changeLanguage = (lang: Language) => {
@@ -863,7 +884,7 @@ export default function App() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 flex flex-col overflow-hidden select-none font-sans h-[100dvh] w-[100vw]",
+        "fixed inset-0 flex flex-col overflow-hidden select-none font-sans h-[100dvh] w-[100vw] touch-none",
         themeMode !== 'custom' && (THEMES[themeMode]?.bg || THEMES.default.bg),
         themeMode !== 'custom' && (THEMES[themeMode]?.text || THEMES.default.text),
         colorblindMode && "grayscale contrast-125"
@@ -875,7 +896,8 @@ export default function App() {
       }}
       style={{ 
         fontSize: `${fontSize}px`,
-        ...(themeMode === 'custom' ? currentThemeStyles.background : {})
+        ...(themeMode === 'custom' ? currentThemeStyles.background : {}),
+        cursor: 'none'
       }}
     >
       {/* Flash Overlay (Screen Backup) */}
@@ -912,6 +934,8 @@ export default function App() {
         <div className="flex-shrink-0">
           <button 
             id="access-btn"
+            tabIndex={-1}
+            onFocus={(e) => e.currentTarget.blur()}
             onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak(t.accOpened); }}
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
@@ -946,7 +970,9 @@ export default function App() {
         <div className="flex-shrink-0">
           <button 
             id="settings-btn"
-            onClick={() => triggerHaptic([50])}
+            tabIndex={-1}
+            onFocus={(e) => e.currentTarget.blur()}
+            onClick={() => { setShowSettingsModal(true); triggerHaptic([50]); speak(t.settOpened); }}
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
               themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
@@ -1004,6 +1030,8 @@ export default function App() {
               {!lockEdit && (
                 <button 
                   id={`del-${id}`}
+                  tabIndex={-1}
+                  onFocus={(e) => e.currentTarget.blur()}
                   onClick={(e) => { e.stopPropagation(); removeApp(id); }}
                   aria-label={`Remover ${PRESET_APPS[id]?.label}`}
                   className="absolute -top-4 -right-4 w-12 h-12 bg-red-600 text-white rounded-full border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center z-50 active:scale-90"
@@ -1017,6 +1045,8 @@ export default function App() {
           {!lockEdit && (
             <button 
               id="btn-add-app"
+              tabIndex={-1}
+              onFocus={(e) => e.currentTarget.blur()}
               onClick={() => { setShowAddAppModal(true); triggerHaptic([50]); }}
               aria-label="Adicionar novo aplicativo"
               className="aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] border-dashed border-black/20 bg-black/5 active:scale-95 transition-all text-black/30 hover:text-black hover:border-black/50"
@@ -1040,6 +1070,8 @@ export default function App() {
         <div className="flex items-center justify-center border-r-[3px] border-current">
           <button 
             id="mic-btn" 
+            tabIndex={-1}
+            onFocus={(e) => e.currentTarget.blur()}
             onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
             aria-label={isVoiceActive ? "Desativar assistente de voz" : "Ativar assistente de voz"}
             className={cn(
@@ -1100,6 +1132,8 @@ export default function App() {
         <div className="flex items-center justify-center border-l-[3px] border-current">
           <button 
             id="flashlight-btn" 
+            tabIndex={-1}
+            onFocus={(e) => e.currentTarget.blur()}
             onClick={toggleFlashlight} 
             aria-label={flashlightOn ? "Desligar lanterna" : "Ligar lanterna"}
             className={cn(
