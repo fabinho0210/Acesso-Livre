@@ -439,20 +439,29 @@ export default function App() {
 
     try {
       if (newState) {
+        // Try environment camera
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: { exact: "environment" } } 
-        }).catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }));
+          video: { facingMode: { ideal: "environment" } } 
+        });
         
         const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities() as any;
-        
-        if (capabilities.torch) {
-          await track.applyConstraints({
-            advanced: [{ torch: true }]
-          } as any);
-          videoTrackRef.current = track;
-        } else {
-          console.warn("Torch not supported on this track");
+        videoTrackRef.current = track;
+
+        // Apply torch
+        try {
+          const capabilities = track.getCapabilities() as any;
+          if (capabilities.torch) {
+            await track.applyConstraints({
+              advanced: [{ torch: true }]
+            } as any);
+          } else {
+            // Some browsers don't show torch in capabilities until track is active or at all
+            await track.applyConstraints({
+              advanced: [{ torch: true }]
+            } as any).catch(e => console.warn("Apply constraints torch failed:", e));
+          }
+        } catch (e) {
+          console.warn("Could not check capabilities:", e);
         }
       } else {
         if (videoTrackRef.current) {
@@ -461,7 +470,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.error("Flashlight error:", err);
+      console.error("Flashlight hardware error:", err);
     }
   };
 
@@ -608,6 +617,14 @@ export default function App() {
     recognitionRef.current.interimResults = false;
     recognitionRef.current.lang = language;
 
+    recognitionRef.current.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === 'not-allowed') {
+        speak(t.locationDenied || "Permissão de microfone negada.");
+        setIsVoiceActive(false);
+      }
+    };
+
     recognitionRef.current.onresult = (event: any) => {
       const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
       handleVoiceCommand(transcript);
@@ -702,18 +719,14 @@ export default function App() {
     setTimeout(() => setIsClicking(false), 200);
 
     const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const mainAreaHeight = window.innerHeight - HEADER_HEIGHT - FOOTER_HEIGHT;
-    
-    // Convert relative Y to viewport Y within the main area scrollable container
-    const vh = window.innerHeight;
-    const yPxScrollAdjusted = (cursorPos.y / 100) * (vh - HEADER_HEIGHT - FOOTER_HEIGHT) + HEADER_HEIGHT;
-    const el = document.elementFromPoint(xPx, yPxScrollAdjusted);
+    const yPx = (cursorPos.y / 100) * window.innerHeight;
+    const el = document.elementFromPoint(xPx, yPx);
     
     if (el) {
       const target = el.closest('button') || el.closest('a') || el.closest('[role="button"]') || el.closest('[role="listitem"]');
       if (target) (target as HTMLElement).click();
     }
-  }, [cursorPos, vibrateOnTouch, HEADER_HEIGHT, FOOTER_HEIGHT]);
+  }, [cursorPos, vibrateOnTouch]);
 
   const handleTrackpadMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     const isTouch = 'touches' in e;
@@ -732,11 +745,9 @@ export default function App() {
   useEffect(() => {
     cursorX.set(cursorPos.x);
     cursorY.set(cursorPos.y);
-    const vh = window.innerHeight;
-    const mainAreaHeight = vh - HEADER_HEIGHT - FOOTER_HEIGHT;
     
     const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const yPx = (cursorPos.y / 100) * mainAreaHeight + HEADER_HEIGHT;
+    const yPx = (cursorPos.y / 100) * window.innerHeight;
     const el = document.elementFromPoint(xPx, yPx);
     const target = el?.closest('button') || el?.closest('a') || el?.closest('[role="listitem"]');
     const elementId = target?.id || (target as any)?.dataset?.appId || (target as any)?.innerText || null;
@@ -791,22 +802,27 @@ export default function App() {
         ...(themeMode === 'custom' ? currentThemeStyles.background : {})
       }}
     >
-      {/* Flash Overlay */}
+      {/* Flash Overlay (Screen Backup) */}
       <AnimatePresence>
         {(flashAlert || flashlightOn) && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: flashlightOn ? 0.4 : 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-yellow-400/80 z-[3000] pointer-events-none" />
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: flashlightOn ? 0.95 : 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-white z-[3000] pointer-events-none" 
+          />
         )}
       </AnimatePresence>
 
       {/* Reading Line Overlay */}
       {readingLine && (
         <motion.div 
-          animate={{ top: `calc(${HEADER_HEIGHT}px + ${cursorY.get()}% * (100vh - ${HEADER_HEIGHT}px - ${FOOTER_HEIGHT}px))` }}
+          animate={{ top: `${cursorPos.y}%` }}
           className={cn(
             "fixed left-0 right-0 h-10 border-y-4 z-[50] pointer-events-none transition-all duration-75",
             themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-yellow-400/40 border-black" : "bg-white/20")
           )}
-          style={themeMode === 'custom' ? { backgroundColor: `${customTheme.fg}40`, borderColor: customTheme.fg } : (themeMode !== 'default' ? { borderColor: 'currentColor' } : {})}
+          style={themeMode === 'custom' ? { backgroundColor: `${customTheme.accent}40`, borderColor: customTheme.fg } : {}}
         />
       )}
 
@@ -1019,12 +1035,12 @@ export default function App() {
             className="fixed pointer-events-none z-[1000]" 
             style={{ 
               left: cursorPos.x + 'vw', 
-              top: `calc(${HEADER_HEIGHT}px + ${cursorPos.y}% * (100dvh - ${HEADER_HEIGHT}px - ${FOOTER_HEIGHT}px))`, 
+              top: cursorPos.y + 'vh', 
               x: "-50%", 
               y: "-50%" 
             }}
           >
-            <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
+            <svg viewBox="0 0 100 100" className="w-[80px] h-[80px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
               <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrastMode || isDarkMode ? "#fff" : "#facc15"} stroke="black" strokeWidth="10" strokeLinejoin="round" />
             </svg>
           </motion.div>
