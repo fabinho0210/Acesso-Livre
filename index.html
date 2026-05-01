@@ -346,15 +346,15 @@
                                     id={app.id}
                                     onClick={() => alert(`${t.title}: ${app.label}`)}
                                     className={cn(
-                                        "aspect-square rounded-xl border-4 border-black neo-shadow flex flex-col items-center justify-center p-4 transition-all active:scale-95",
+                                        "aspect-square rounded-none border-4 border-black neo-shadow flex flex-col items-center justify-center p-2 transition-all active:scale-95",
                                         hoveredId === app.id ? "bg-white text-black scale-105" : (app.color || "bg-blue-500"),
                                         highContrast && "bg-zinc-900 border-white border-[6px]"
                                     )}
                                 >
-                                    <Icon name={app.icon || 'star'} size={window.innerWidth < 640 ? 64 : 80} strokeWidth={3} />
+                                    <Icon name={app.icon || 'star'} size={window.innerWidth < 640 ? 56 : 72} strokeWidth={3} />
                                     <span className={cn(
-                                        "font-black uppercase mt-4 tracking-tighter leading-none text-center",
-                                        fontSize === 'large' ? "text-3xl" : "text-xl"
+                                        "font-black uppercase mt-2 tracking-tighter leading-tight text-center px-1 break-words w-full",
+                                        fontSize === 'large' ? "text-xl sm:text-2xl" : "text-sm sm:text-lg"
                                     )}>
                                         {app.label}
                                     </span>
@@ -437,13 +437,13 @@
                                     <div className="w-24 border-l-4 border-black flex flex-col divide-y-4 divide-black">
                                         <button 
                                             onClick={() => setZoomScale(prev => Math.min(prev + 0.2, 3))}
-                                            className="flex-1 flex items-center justify-center"
+                                            className="flex-1 flex items-center justify-center scale-press active:bg-yellow-400"
                                         >
                                             <Icon name="zoom-in" size={32} />
                                         </button>
                                         <button 
                                             onClick={() => setZoomScale(prev => Math.max(prev - 0.2, 0.5))}
-                                            className="flex-1 flex items-center justify-center"
+                                            className="flex-1 flex items-center justify-center scale-press active:bg-yellow-400"
                                         >
                                             <Icon name="zoom-out" size={32} />
                                         </button>
