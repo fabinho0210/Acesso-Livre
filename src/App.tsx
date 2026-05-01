@@ -478,6 +478,7 @@ export default function App() {
   
   // --- UI States ---
   const [showAccessModal, setShowAccessModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showAppList, setShowAppList] = useState(false);
   const [showMedicalInfo, setShowMedicalInfo] = useState(false);
   const [locationText, setLocationText] = useState("");
@@ -1431,6 +1432,63 @@ export default function App() {
               </div>
               <div className="p-6 bg-red-700 border-t-[6px] border-black">
                 <button onClick={() => setShowMedicalInfo(false)} className="w-full h-16 bg-white text-black rounded-[24px] border-[4px] border-black font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettingsModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center">
+            <motion.div 
+              initial={{ y: "100%" }} 
+              animate={{ y: 0 }} 
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className={cn(
+                "w-full h-full flex flex-col transition-colors overflow-hidden",
+                themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
+              )}
+              style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, color: customTheme.fg } : {}}
+            >
+              <div className={cn("p-6 sm:p-8 flex-shrink-0 border-b-[6px] border-black flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-blue-500 text-white" : "bg-transparent border-current"))}>
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-[20px] border-[4px] border-black/20">
+                    <Settings size={32} strokeWidth={3} />
+                  </div>
+                  <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">Configurações</h2>
+                </div>
+                <button onClick={() => setShowSettingsModal(false)} className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
+              </div>
+              
+              <div className="flex-1 p-6 sm:p-10 overflow-y-auto space-y-8 pb-36 custom-scrollbar">
+                {/* IDIOMA */}
+                <section>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2 text-current px-2"><Smartphone size={16}/> Idioma / Language</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {(['pt-BR', 'en-US', 'es-ES'] as Language[]).map((lang) => (
+                      <button 
+                        key={lang}
+                        onClick={() => changeLanguage(lang)}
+                        className={cn(
+                          "min-h-[80px] p-4 rounded-2xl border-[4px] border-black flex items-center justify-between font-black uppercase shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
+                          language === lang ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-white text-black"
+                        )}
+                      >
+                        <span className="text-xl">
+                          {lang === 'pt-BR' ? '🇧🇷 Português' : lang === 'en-US' ? '🇺🇸 English' : '🇪🇸 Español'}
+                        </span>
+                        {language === lang && <CheckCircle size={32} className="text-green-600" />}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
+                <button onClick={() => setShowSettingsModal(false)} className="w-full h-16 sm:h-20 bg-blue-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
