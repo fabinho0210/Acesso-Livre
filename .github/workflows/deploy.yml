@@ -1,37 +1,35 @@
-name: Deploy para GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main"] # Verifique se seu branch principal chama main ou master
+    branches:
+      - main  # Ou a branch que você usa como principal
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout 🛎️
         uses: actions/checkout@v4
 
-      - name: Configurar Node
+      - name: Setup Node.js ⚙️
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Instalar dependências
-        run: npm install
+      - name: Install Dependencies 📦
+        run: npm ci
 
-      - name: Build do Projeto
+      - name: Build 🏗️
         run: npm run build
 
-      - name: Upload do artefato
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: ./dist # O Vite joga os arquivos prontos aqui
-
-      - name: Deploy
-        uses: actions/deploy-pages@v4
+          folder: dist
+          branch: gh-pages
