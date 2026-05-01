@@ -37,6 +37,9 @@ import {
   LayoutGrid,
   Youtube,
   Facebook,
+  Instagram,
+  Camera,
+  Heart,
   Calculator,
   Calendar,
   Mail,
@@ -472,19 +475,17 @@ export default function App() {
   };
 
   // --- App Presets & Management ---
-  const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link', value: string }> = {
-    'phone': { label: t.phone, color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'intent', value: 'tel:' },
-    'whatsapp': { label: t.whatsapp, color: 'bg-[#059669]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'intent://send#Intent;package=com.whatsapp;scheme=whatsapp;end' },
-    'camera': { label: t.camera, color: 'bg-zinc-400', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
-    'browser': { label: t.browser, color: 'bg-blue-500', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
-    'emergency': { label: t.emergency, color: 'bg-[#ef4444]', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'intent', value: 'tel:192' },
-    'family': { label: t.family, color: 'bg-[#a855f7]', icon: <Home size={52} strokeWidth={3} />, type: 'link', value: '#' },
+  const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link' | 'tel', value: string }> = {
+    'phone': { label: t.phone, color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'tel', value: 'tel:' },
+    'whatsapp': { label: t.whatsapp, color: 'bg-[#10b981]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'whatsapp://send' },
+    'camera': { label: t.camera, color: 'bg-blue-400', icon: <Camera size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
+    'browser': { label: t.browser, color: 'bg-[#f97316]', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
+    'emergency': { label: t.emergency, color: 'bg-red-600', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'tel', value: 'tel:190' },
+    'family': { label: t.family, color: 'bg-purple-600', icon: <Heart size={52} strokeWidth={3} />, type: 'link', value: '#' },
     'youtube': { label: t.youtube, color: 'bg-red-500', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
     'facebook': { label: t.facebook, color: 'bg-blue-600', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
-    'instagram': { label: t.instagram, color: 'bg-pink-500', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
-    'calc': { label: t.calc, color: 'bg-zinc-600', icon: <Calculator size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.calculator2' },
-    'gallery': { label: t.gallery, color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'intent:android.intent.action.VIEW;type=image/*;end' },
-    'email': { label: t.email, color: 'bg-white', icon: <Mail size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.gm' },
+    'instagram': { label: t.instagram, color: 'bg-pink-500', icon: <Instagram size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
+    'gallery': { label: t.gallery, color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.gallery3d' },
     'maps': { label: t.maps, color: 'bg-green-500', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
   };
 
@@ -520,10 +521,13 @@ export default function App() {
     speak(`${t.opened} ${app.label}`);
 
     if (app.type === 'link') {
+      if (app.value === '#') return;
+      window.location.href = app.value;
+    } else if (app.type === 'tel') {
       window.location.href = app.value;
     } else {
-      if (app.value.startsWith('tel:')) {
-        if (confirmCall) speak(t.confirmCallMsg);
+      // Android Intent Logic
+      if (app.value.includes('intent:')) {
         window.location.href = app.value;
       } else {
         window.location.href = `intent://#Intent;package=${app.value};scheme=https;end`;
@@ -662,17 +666,16 @@ export default function App() {
     setTimeout(() => setIsClicking(false), 200);
 
     const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const headerHeight = 80;
-    const navHeight = 96;
-    const controlsHeight = window.innerHeight * 0.32;
-    const mainAreaHeight = window.innerHeight - headerHeight - navHeight - controlsHeight;
+    const headerHeight = 120;
+    const footerHeight = 112;
+    const mainAreaHeight = window.innerHeight - headerHeight - footerHeight;
     
     // Convert relative Y to viewport Y within the main area scrollable container
     const yPxScrollAdjusted = (cursorPos.y / 100) * mainAreaHeight + headerHeight;
     const el = document.elementFromPoint(xPx, yPxScrollAdjusted);
     
     if (el) {
-      const target = el.closest('button') || el.closest('a');
+      const target = el.closest('button') || el.closest('a') || el.closest('[role="button"]');
       if (target) (target as HTMLElement).click();
     }
   }, [cursorPos, vibrateOnTouch]);
@@ -694,10 +697,9 @@ export default function App() {
   useEffect(() => {
     cursorX.set(cursorPos.x);
     cursorY.set(cursorPos.y);
-    const headerHeight = 80;
-    const navHeight = 96;
-    const controlsHeight = window.innerHeight * 0.32;
-    const mainAreaHeight = window.innerHeight - headerHeight - navHeight - controlsHeight;
+    const headerHeight = 120;
+    const footerHeight = 112;
+    const mainAreaHeight = window.innerHeight - headerHeight - footerHeight;
     
     const xPx = (cursorPos.x / 100) * window.innerWidth;
     const yPx = (cursorPos.y / 100) * mainAreaHeight + headerHeight;
@@ -769,49 +771,39 @@ export default function App() {
         />
       )}
 
-      {/* Header */}
+      {/* Header - Relógio e Data (Neo-Brutalista) */}
       <header className={cn(
-        "h-[120px] flex-shrink-0 border-b-[4px] relative px-6 z-[200] flex flex-col justify-center items-center shadow-[0px_4px_10px_0px_rgba(0,0,0,0.1)]",
-        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
-        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : ""
-      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+        "h-[120px] flex-shrink-0 border-b-[4px] relative px-6 z-[200] flex flex-col justify-center items-center pt-[env(safe-area-inset-top)]",
+        themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
+      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg} : {}}>
         
-        {/* Lado Esquerdo: Acessibilidade e Idiomas */}
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-3">
+        {/* Lado Esquerdo: Acessibilidade */}
+        <div className="absolute left-6 top-1/2 -translate-y-1/2">
           <button 
             id="access-btn"
             onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak(t.accOpened); }}
             className={cn(
-              "w-14 h-14 flex-shrink-0 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
+              "w-14 h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
               themeMode === 'custom' ? "bg-white border-black" : (themeMode === 'default' ? "bg-yellow-400 border-black" : "bg-transparent")
             )}
-            style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`, color: customTheme.fg} : {}}
+            style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`, color: customTheme.fg} : (themeMode !== 'default' ? {boxShadow: `4px 4px 0px 0px ${THEMES[themeMode]?.shadow}`, borderColor: 'currentColor'} : {})}
           >
-            <Accessibility size={32} strokeWidth={3} />
+            <Accessibility size={28} strokeWidth={2.5} />
           </button>
-          
-          <div className="hidden sm:flex flex-col gap-1 items-center bg-black/5 p-1 rounded-xl border-2 border-black/10">
-            <button id="lang-pt" onClick={() => changeLanguage('pt-BR')} className={cn("text-lg hover:scale-110", language === 'pt-BR' && "scale-125")} title="Português">🇧🇷</button>
-            <button id="lang-en" onClick={() => changeLanguage('en-US')} className={cn("text-lg hover:scale-110", language === 'en-US' && "scale-125")} title="English">🇺🇸</button>
-            <button id="lang-es" onClick={() => changeLanguage('es-ES')} className={cn("text-lg hover:scale-110", language === 'es-ES' && "scale-125")} title="Español">🇪🇸</button>
-          </div>
         </div>
 
-        {/* Centro: RELÓGIO E DATA (Destaque Principal) */}
-        <div className="flex flex-col items-center justify-center text-center">
-          <span className={cn("font-black text-5xl sm:text-7xl tracking-tighter leading-none mb-1")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
+        {/* Centro: RELÓGIO E DATA */}
+        <div className="flex flex-col items-center justify-center text-center bg-white border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-8 py-2 rounded-[24px]">
+          <span className="font-black text-4xl sm:text-6xl tracking-tighter leading-none text-black">
             {currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span className={cn("font-black text-[12px] sm:text-sm uppercase tracking-widest opacity-80")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
+          <span className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-black opacity-60">
             {currentTime.toLocaleDateString(language, { weekday: 'long', day: '2-digit', month: 'long' })}
           </span>
         </div>
 
-        {/* Lado Direito: Settings e Identidade */}
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-4">
-          <div className="hidden lg:flex flex-col items-end opacity-40">
-            <h1 className="font-black italic text-sm tracking-tighter uppercase leading-none" style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>{t.appName}</h1>
-          </div>
+        {/* Lado Direito: Settings/Linguagem (Opcional, mantendo Settings) */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2">
           <button 
             id="settings-btn"
             onClick={() => triggerHaptic([50])}
@@ -819,222 +811,145 @@ export default function App() {
               "w-14 h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
               themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
             )}
-            style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
+            style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : (themeMode !== 'default' ? {boxShadow: `4px 4px 0px 0px ${THEMES[themeMode]?.shadow}`, borderColor: 'currentColor'} : {})}
           >
             <Settings size={32} strokeWidth={2.5} style={themeMode === 'custom' ? {color: customTheme.fg} : {}} />
           </button>
         </div>
       </header>
 
-      {/* 2. ÁREA CENTRAL DINÂMICA (Scrollable Grid) */}
-      <main className="flex-1 p-4 sm:p-6 overflow-y-auto z-10 custom-scrollbar scroll-smooth">
-        <motion.div 
-          animate={{ scale: zoomScale, x: panPos.x, y: panPos.y }}
-          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
-          className="w-full max-w-xl mx-auto"
-        >
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 w-full pb-12">
-          {allApps.map(app => (
-            <motion.div
-              key={app.id}
-              id={app.id}
-              onClick={app.action}
+
+      <main 
+        id="main-scroll-area"
+        className={cn(
+          "flex-grow overflow-y-auto p-6 sm:p-12 scroll-smooth relative custom-scrollbar",
+          themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-[#f3f4f6]" : (THEMES[themeMode]?.bg))
+        )}
+        style={themeMode === 'custom' ? { backgroundColor: customTheme.bg } : {}}
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-12">
+          {visibleAppIds.map((id) => (
+            <motion.div 
+              key={id} 
+              id={id}
+              onClick={() => handleAppAction(id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { handleAppAction(id); } }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') app.action(); }}
-              whileHover={enhancedFeedback ? { scale: 1.05, y: -4 } : {}}
-              whileTap={enhancedFeedback ? { scale: 0.95, y: 4, x: 4 } : {}}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95, x: 4, y: 4 }}
               className={cn(
-                "relative flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer select-none",
-                themeMode === 'classic' || themeMode === 'night' ? "bg-black" : (themeMode === 'custom' ? "" : app.color),
-                themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "",
-                themeMode !== 'custom' ? (THEMES[themeMode]?.text || THEMES.default.text) : "",
-                hoveredId === app.id && enhancedFeedback ? "shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]" : "shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                "group relative aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] transition-all cursor-pointer",
+                themeMode === 'custom' ? "" : (themeMode === 'default' ? PRESET_APPS[id]?.color : "bg-transparent"),
+                themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || "border-black") : ""
               )}
               style={{
-                boxShadow: hoveredId === app.id && enhancedFeedback 
-                  ? `16px 16px 0px 0px ${themeMode === 'custom' ? customTheme.fg : currentThemeStyles.shadowColor}`
-                  : `8px 8px 0px 0px ${themeMode === 'custom' ? customTheme.fg : currentThemeStyles.shadowColor}`,
-                ...(themeMode === 'custom' ? { 
-                  backgroundColor: customTheme.accent, 
-                  borderColor: customTheme.fg,
-                  color: customTheme.fg
-                } : {})
+                boxShadow: `8px 8px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
+                ...(themeMode === 'custom' ? { borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent } : {})
               }}
             >
-              <div style={themeMode === 'custom' ? { color: customTheme.fg } : { color: 'inherit' }}>{app.icon}</div>
-              <span className="font-black text-sm sm:text-lg uppercase px-2 text-center" style={themeMode === 'custom' ? { color: customTheme.fg } : { color: 'inherit' }}>{app.label}</span>
-              {!lockEdit && app.id !== 'app-all' && (
+              <div className="scale-110 mb-1">{PRESET_APPS[id]?.icon}</div>
+              <span className="font-black text-xl sm:text-2xl uppercase tracking-tighter">{PRESET_APPS[id]?.label}</span>
+              
+              {!lockEdit && (
                 <button 
-                  id={`del-${app.id}`}
-                  onClick={(e) => { e.stopPropagation(); removeApp(app.id); }}
-                  className="absolute -top-4 -right-4 w-12 h-12 bg-red-500 rounded-full border-[4px] border-black flex items-center justify-center shadow-lg active:translate-y-1 transition-all z-20"
+                  id={`del-${id}`}
+                  onClick={(e) => { e.stopPropagation(); removeApp(id); }}
+                  className="absolute -top-4 -right-4 w-12 h-12 bg-red-600 text-white rounded-full border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center z-50 active:scale-90"
                 >
-                  <X size={24} strokeWidth={4} className="text-white" />
+                  <X size={24} strokeWidth={5} />
                 </button>
               )}
             </motion.div>
           ))}
           
           {!lockEdit && (
-            <button
-              id="add-app-btn"
-              onClick={() => setShowAddAppModal(true)}
-              className={cn(
-                "flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] border-dashed shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all",
-                isDarkMode || highContrastMode ? "border-white/40 text-white/40" : "border-black/40 text-black/40",
-                hoveredId === 'add-app-btn' ? "scale-[1.05] border-solid" : "scale-100"
-              )}
+            <button 
+              id="btn-add-app"
+              onClick={() => { setShowAddAppModal(true); triggerHaptic([50]); }}
+              className="aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] border-dashed border-black/20 bg-black/5 active:scale-95 transition-all text-black/30 hover:text-black hover:border-black/50"
             >
-              <Plus size={64} strokeWidth={3} />
-              <span className="font-black text-sm uppercase">{t.add}</span>
+              <Plus size={52} strokeWidth={4} />
+              <span className="font-black text-xl uppercase tracking-widest">{t.add}</span>
             </button>
           )}
-          </div>
-        </motion.div>
+        </div>
+
       </main>
 
-      {/* Nav Bar */}
-      <nav className={cn(
-        "h-24 flex-shrink-0 border-y-[4px] grid grid-cols-4 z-[100]",
+      {/* Navegação e Assistive Controls simplificados para Footer - Mic | Trackpad | Flashlight */}
+      <footer className={cn(
+        "h-28 flex-shrink-0 border-t-[4px] grid grid-cols-[100px_1fr_100px] z-[100] pb-[env(safe-area-inset-bottom)]",
         themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
-        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "",
-        themeMode !== 'custom' ? (THEMES[themeMode]?.text || THEMES.default.text) : ""
-      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg} : {}}>
-        {[
-          { id: 'nav-back', label: t.navBack, icon: <ArrowLeft size={32} /> },
-          { id: 'nav-help', label: t.navHelp, icon: <Search size={32} /> },
-          { id: 'nav-home', label: t.navHome, icon: <Home size={32} /> },
-          { id: 'nav-menu', label: t.navMenu, icon: <Menu size={32} /> },
-        ].map(item => (
-          <button 
-            key={item.id} 
-            id={item.id} 
-            className={cn(
-              "flex flex-col items-center justify-center border-r-[2px] last:border-r-0 active:bg-gray-100 transition-colors uppercase",
-              themeMode !== 'custom' ? (themeMode === 'default' ? "border-black/20" : (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder).replace('border-', 'border-opacity-20 border-')) : ""
-            )}
-            style={themeMode === 'custom' ? {borderColor: `${customTheme.fg}40`, color: customTheme.fg} : {}}
-          >
-            {item.icon}
-            <span className="font-black text-[10px] sm:text-xs mt-1">{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Assistive Controls Section (Trackpad / Powe Buttons) */}
-      <div 
-        className={cn("h-[32%] flex-shrink-0 grid grid-cols-[140px_1fr_140px] border-b-[4px] z-[100]", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#e5e7eb]" : (THEMES[themeMode]?.bg || THEMES.default.bg)))}
-        style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
-      >
-        <div 
-          className={cn("border-r-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)))}
-          style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
-        >
+        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || "border-black") : ""
+      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+        
+        {/* Lado Esquerdo: MICROFONE */}
+        <div className="flex items-center justify-center border-r-[3px] border-current">
           <button 
             id="mic-btn" 
             onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
-            className={cn("w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all relative overflow-hidden", isVoiceActive ? "bg-red-400 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent"))}
+            className={cn(
+              "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden transition-all",
+              isVoiceActive ? "bg-red-500 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent")
+            )}
             style={{
               boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
               borderColor: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'black' : 'currentColor'),
-              color: isVoiceActive ? 'white' : (themeMode === 'custom' ? customTheme.fg : undefined)
             }}
           >
             <AnimatePresence>
               {isVoiceActive && (
                 <motion.div 
                   initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-white/30 rounded-full"
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="absolute inset-0 bg-white/40 rounded-full"
                 />
               )}
             </AnimatePresence>
-            <motion.div
-              animate={isVoiceActive ? { scale: [1, 1.1, 1] } : {}}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="z-10"
-            >
-              {isVoiceActive ? <Mic size={44} /> : <MicOff size={44} />}
-            </motion.div>
+            <Mic size={32} strokeWidth={4} className="relative z-10" />
           </button>
         </div>
-        <div 
-          id="tracks-area" 
-          className={cn(
-            "relative overflow-hidden flex flex-col items-center justify-center transition-all",
-            !trackpadEnabled && "opacity-40 grayscale pointer-events-none",
-            trackpadEnabled && (themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)))
-          )} 
-          onMouseMove={trackpadEnabled ? handleTrackpadMove : undefined} 
-          onTouchMove={trackpadEnabled ? handleTrackpadMove : undefined} 
-          onClick={trackpadEnabled ? handleClick : undefined}
-          style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
-        >
-          {/* Assistente Listening Indicator */}
-          <AnimatePresence>
-            {isVoiceActive && (
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 20, opacity: 0 }}
-                className="absolute top-4 left-0 right-0 flex flex-col items-center gap-2 z-20 pointer-events-none"
-              >
-                <div className="flex items-center gap-1.5 px-4 py-2 bg-black/80 rounded-full border-2 border-white/20 backdrop-blur-sm">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="font-black text-[10px] uppercase text-white tracking-widest">
-                    {t.assistantOn} {!navigator.onLine ? ' (OFFLINE)' : ''}
-                  </span>
-                  <div className="flex items-end gap-0.5 h-3 ml-2">
-                    {[1, 2, 3, 4, 3, 2, 1].map((h, i) => (
-                      <motion.div 
-                        key={i}
-                        animate={{ height: [`${h*20}%`, `${h*80}%`, `${h*20}%`] }}
-                        transition={{ duration: 0.5 + i*0.1, repeat: Infinity, ease: "easeInOut" }}
-                        className="w-0.5 bg-red-400 rounded-full"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          {trackpadEnabled ? (
-            <div className="flex flex-col items-center justify-center pointer-events-none opacity-10">
-              {/* Layout Clean: Apenas um respiro visual */}
-              <div className="flex gap-2">
-                <div className="w-2 h-2 rounded-full bg-current" />
-                <div className="w-2 h-2 rounded-full bg-current" />
-                <div className="w-2 h-2 rounded-full bg-current" />
-              </div>
+        {/* CENTRO: TRACKPAD */}
+        <div 
+          id="tracks-area"
+          onMouseMove={handleTrackpadMove}
+          onTouchMove={handleTrackpadMove}
+          onClick={handleClick}
+          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors"
+        >
+          {trackpadEnabled && (
+            <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+              <div className="w-1.5 h-1.5 rounded-full bg-current" />
+              <div className="w-1.5 h-1.5 rounded-full bg-current" />
+              <div className="w-1.5 h-1.5 rounded-full bg-current" />
             </div>
-          ) : (
-            <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4 opacity-40")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
-              {t.disabled}
-            </span>
           )}
           
-          {trackpadEnabled && dwellEnabled && dwellProgress > 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <svg className="w-32 h-32 rotate-[-90deg]">
-                <circle cx="64" cy="64" r="60" fill="none" stroke={themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? "#fbbf24" : "currentColor")} strokeWidth="8" strokeDasharray="377" strokeDashoffset={377 - (377 * dwellProgress) / 100} className="transition-all duration-75" />
+          {/* Progress Dwell Visualizer (Small) */}
+          {dwellEnabled && dwellProgress > 0 && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className="w-10 h-10 transform -rotate-90">
+                <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={100} strokeDashoffset={100 - dwellProgress} className="text-current opacity-30" />
               </svg>
             </div>
           )}
         </div>
-        <div className={cn("border-l-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)), themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "")} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+
+        {/* Lado Direito: LANTERNA */}
+        <div className="flex items-center justify-center border-l-[3px] border-current">
           <button 
             id="flashlight-btn" 
             onClick={() => { 
               const newState = !flashlightOn;
               setFlashlightOn(newState); 
-              triggerHaptic([50, 100]); 
+              triggerHaptic([50]); 
               speak(newState ? t.flashlightOn : t.flashlightOff);
             }} 
             className={cn(
-              "w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
+              "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
               flashlightOn ? "bg-yellow-400 border-black text-black" : (themeMode === 'default' ? "bg-gray-100 border-black text-black" : "bg-transparent")
             )}
             style={{
@@ -1043,10 +958,12 @@ export default function App() {
               color: (flashlightOn || themeMode === 'default') ? 'black' : (themeMode === 'custom' ? customTheme.fg : 'inherit')
             }}
           >
-            <Flashlight size={44} />
+            <Flashlight size={32} strokeWidth={3} />
           </button>
         </div>
-      </div>
+      </footer>
+
+
 
       {/* Visual Cursor */}
       <AnimatePresence>
@@ -1056,7 +973,7 @@ export default function App() {
             animate={{ opacity: 1, scale: isClicking ? 0.7 : 1 }}
             exit={{ opacity: 0, scale: 0 }}
             className="fixed pointer-events-none z-[1000]" 
-            style={{ left: cursorX.get() + 'vw', top: `calc(${80}px + ${cursorY.get()}% * (100vh - 80px - 96px - 32vh))`, x: "-50%", y: "-50%" }}
+            style={{ left: cursorX.get() + 'vw', top: `calc(${120}px + ${cursorY.get()}% * (100vh - 120px - 112px))`, x: "-50%", y: "-50%" }}
           >
             <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
               <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrastMode || isDarkMode ? "#fff" : "#facc15"} stroke="black" strokeWidth="10" strokeLinejoin="round" />
@@ -1073,31 +990,68 @@ export default function App() {
               initial={{ scale: 0.9, y: 50 }} 
               animate={{ scale: 1, y: 0 }} 
               className={cn(
-                "w-full max-w-2xl max-h-[92vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden transition-colors",
+                "w-[90%] max-w-2xl max-h-[85vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-colors",
                 themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
               )}
               style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
             >
-              <div className={cn("p-6 border-b-[6px] flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 border-black text-black" : "bg-transparent border-current"))}>
-                <div className="flex items-center gap-3">
-                  <Accessibility size={40} />
-                  <h2 className="font-black text-xl sm:text-2xl uppercase italic">{t.accessibility}</h2>
+              <div className={cn("p-6 border-b-[6px] flex-shrink-0 flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 border-black text-black" : "bg-transparent border-current"))}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-2xl border-[4px] border-black/20">
+                    <Accessibility size={28} strokeWidth={2.5} />
+                  </div>
+                  <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
                 </div>
-                <button onClick={() => setShowAccessModal(false)} className={cn("p-3 rounded-2xl border-[4px] active:translate-y-1", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black text-black")}><X size={32} /></button>
+                <button onClick={() => setShowAccessModal(false)} className={cn("p-2 rounded-xl border-[4px] active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black text-black")}><X size={28} /></button>
               </div>
               
-              <div className="flex-1 p-6 overflow-y-auto space-y-8 pb-32">
+              <div className="flex-1 p-6 sm:p-8 overflow-y-auto overflow-x-hidden space-y-8 pb-32 custom-scrollbar">
+                {/* CONFIGURAÇÃO / EDIÇÃO */}
+                <section className="bg-black/5 p-6 rounded-[32px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full box-border">
+                  <div className="flex items-center justify-between gap-6 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={cn("shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border-4 border-black", lockEdit ? "bg-zinc-200" : "bg-red-500 text-white")}>
+                        {lockEdit ? <Lock size={32} /> : <Unlock size={32} />}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <h3 className="font-black text-lg sm:text-xl uppercase leading-tight">{t.setup}</h3>
+                        <p className="font-bold text-[10px] sm:text-xs opacity-60 mt-1 uppercase tracking-wider leading-tight">{lockEdit ? "Edição Bloqueada" : "Edição Liberada"}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newState = !lockEdit;
+                        setLockEdit(newState);
+                        localStorage.setItem('launcher_lockEdit', String(newState));
+                        triggerHaptic([100]);
+                        speak(newState ? t.lockOn : t.lockOff);
+                      }}
+                      className={cn(
+                        "shrink-0 w-[84px] h-[48px] rounded-full border-[4px] border-black transition-all relative flex items-center px-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none",
+                        lockEdit ? "bg-zinc-300" : "bg-green-400"
+                      )}
+                    >
+                      <motion.div 
+                        animate={{ x: lockEdit ? 0 : 36 }}
+                        className="w-8 h-8 bg-white rounded-full border-4 border-black flex items-center justify-center"
+                      >
+                        <div className={cn("w-2 h-2 rounded-full", lockEdit ? "bg-zinc-400" : "bg-green-600")} />
+                      </motion.div>
+                    </button>
+                  </div>
+                </section>
+
                 {/* VISÃO */}
                 <section>
                   <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Eye size={16}/> {t.vision}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("h-28 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.increaseText}</span></button>
-                    <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak(t.lupaOn); }} className="h-28 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.magnifier}</span></button>
-                    <button onClick={() => setReadingLine(!readingLine)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", readingLine ? "bg-yellow-400 text-black shadow-none" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px]">{t.readingLine}</span></button>
+                    <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.increaseText}</span></button>
+                    <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak(t.lupaOn); }} className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.magnifier}</span></button>
+                    <button onClick={() => setReadingLine(!readingLine)} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
                     
-                    <section className="col-span-3 mt-6">
+                    <section className="col-span-2 mt-6">
                       <h3 className="font-bold text-lg mb-4 flex items-center gap-2 px-2 text-black"><Palette size={24} /> {t.themes}</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         {(Object.entries(THEMES) as [ThemePreset, any][]).filter(([k]) => k !== 'custom').map(([key, item]) => (
                           <button 
                             key={key} 
@@ -1108,27 +1062,27 @@ export default function App() {
                               speak(`${t.themeActivated}: ${THEME_NAMES[language][key]}`);
                             }}
                             className={cn(
-                              "h-24 rounded-xl border-[3px] flex items-center justify-center font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-                              themeMode === key ? "border-blue-500 scale-95 shadow-none" : "border-black bg-white"
+                              "min-h-[96px] p-3 rounded-xl border-[3px] flex items-center justify-center font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
+                              themeMode === key ? "border-blue-500 bg-zinc-100 translate-y-1 shadow-none" : "border-black bg-white"
                             )}
                           >
-                            <div className="flex flex-col items-center gap-1">
+                            <div className="flex flex-col items-center gap-2">
                               <div className={cn("w-12 h-6 rounded border-2 border-black", item.bg)} />
-                              {THEME_NAMES[language][key]}
+                              <span className="text-center">{THEME_NAMES[language][key]}</span>
                             </div>
                           </button>
                         ))}
                       </div>
                       <button 
                         onClick={() => { setThemeMode('custom'); localStorage.setItem('launcher_themeMode', 'custom'); speak(t.customThemeOn); }}
-                        className={cn("w-full mt-4 h-16 rounded-2xl border-4 border-black font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", themeMode === 'custom' ? "bg-purple-400" : "bg-white")}
+                        className={cn("w-full mt-6 min-h-[64px] p-4 rounded-2xl border-4 border-black font-black uppercase italic shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", themeMode === 'custom' ? "bg-purple-400" : "bg-white")}
                       >
                         🎨 {language === 'en-US' ? 'Create My Theme' : (language === 'es-ES' ? 'Crear Mi Tema' : 'Criar Meu Tema')}
                       </button>
                     </section>
 
                     {themeMode === 'custom' && (
-                      <section className="col-span-3 mt-6 bg-zinc-100 p-4 rounded-3xl border-4 border-black">
+                      <section className="col-span-2 mt-6 bg-zinc-100 p-4 rounded-3xl border-4 border-black">
                         <h3 className="font-bold text-lg mb-4 text-black italic">{t.customCores}</h3>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col gap-2">
@@ -1200,28 +1154,18 @@ export default function App() {
                       localStorage.setItem('launcher_trackpadEnabled', String(newState));
                       triggerHaptic([50]);
                       speak(newState ? t.trackpadOn : t.trackpadOff);
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", trackpadEnabled ? "bg-yellow-400 text-black shadow-none" : "bg-gray-100 text-black")}>
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", trackpadEnabled ? "bg-yellow-400 shadow-none text-black" : "bg-gray-100")}>
                       <Maximize2 size={32} />
                       <span className="font-black uppercase text-[10px]">{trackpadEnabled ? `${t.trackpad} On` : `${t.trackpad} Off`}</span>
                     </button>
-                    <button onClick={() => {
-                      const newState = !lockEdit;
-                      setLockEdit(newState);
-                      localStorage.setItem('launcher_lockEdit', String(newState));
-                      triggerHaptic([50]);
-                      speak(newState ? t.lockOn : t.lockOff);
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", lockEdit ? "bg-red-400 text-white shadow-none" : "bg-zinc-100 text-black")}>
-                      {lockEdit ? <Lock size={32} /> : <Unlock size={32} />}
-                      <span className="font-black uppercase text-[10px]">{lockEdit ? `${t.setup} OFF` : `${t.setup} ON`}</span>
-                    </button>
-                    <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", confirmCall ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">{t.confirmCall}</span></button>
+                    <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", confirmCall ? "bg-green-400 shadow-none" : "bg-gray-100")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">{t.confirmCall}</span></button>
                     <button onClick={() => {
                       const newState = !dwellEnabled;
                       setDwellEnabled(newState);
                       localStorage.setItem('launcher_dwellEnabled', String(newState));
                       triggerHaptic([50]);
                       speak(newState ? t.dwellOn : t.dwellOff);
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", dwellEnabled ? "bg-cyan-400 text-black shadow-none" : "bg-gray-100 text-black")}>
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", dwellEnabled ? "bg-cyan-400 shadow-none" : "bg-gray-100")}>
                       <Zap size={32} />
                       <span className="font-black uppercase text-[10px]">{dwellEnabled ? `${t.dwell} On` : `${t.dwell} Off`}</span>
                     </button>
@@ -1237,58 +1181,59 @@ export default function App() {
                   </div>
                   {locationText && <div className="mt-4 p-4 bg-yellow-100 border-4 border-black font-black text-[12px] uppercase text-black leading-tight shadow-md">{locationText}</div>}
                 </section>
+                <div className="h-10 shrink-0" />
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t-[6px] border-black z-30">
-                <button onClick={() => setShowAccessModal(false)} className="w-full h-20 bg-[#ef4444] text-white rounded-[24px] border-[4px] border-black font-black uppercase text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
+              <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30">
+                <button onClick={() => setShowAccessModal(false)} className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Add App Modal */}
+      {/* Add App Modal - Padronizado */}
       <AnimatePresence>
         {showAddAppModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center p-4">
             <motion.div 
-              initial={{ scale: 0.9 }} 
-              animate={{ scale: 1 }} 
-              className={cn(
-                "w-full max-w-lg rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden",
-                themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
-              )}
-              style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
+              initial={{ scale: 0.9, y: 50 }} 
+              animate={{ scale: 1, y: 0 }} 
+              className="w-full max-w-lg max-h-[85vh] rounded-[48px] border-[6px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden bg-white text-black"
             >
-              <div className={cn("p-6 border-b-[6px] flex items-center justify-between", themeMode === 'custom' ? "bg-transparent border-current" : (themeMode === 'default' ? "bg-blue-400 border-black text-black" : "bg-transparent border-current"))}>
-                <h2 className="font-black text-2xl uppercase italic">{t.addAppTitle}</h2>
-                <button onClick={() => setShowAddAppModal(false)} className={cn("p-2 rounded-xl border-4 active:translate-y-1", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black text-black")}><X size={24}/></button>
+              <div className="p-6 bg-blue-500 border-b-[6px] border-black text-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 flex items-center justify-center bg-white/20 rounded-2xl border-[4px] border-white/40">
+                    <Plus size={28} strokeWidth={4} />
+                  </div>
+                  <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.addAppTitle}</h2>
+                </div>
+                <button onClick={() => setShowAddAppModal(false)} className="p-2 bg-white text-black rounded-xl border-[4px] border-black active:translate-y-1 transition-all">
+                  <X size={28} strokeWidth={4} />
+                </button>
               </div>
-              <div className={cn("p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-gray-50" : "bg-black/10"))}>
+              
+              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 bg-gray-50">
                 {Object.entries(PRESET_APPS).filter(([id]) => !visibleAppIds.includes(id)).map(([id, app]) => (
                   <button 
                     key={id} 
                     id={`add-${id}`}
                     onClick={() => addApp(id)} 
                     className={cn(
-                      "p-4 rounded-3xl border-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 active:translate-y-1 active:shadow-none transition-all",
-                      themeMode === 'default' ? app.color : "bg-transparent border-current"
+                      "p-4 rounded-[32px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 active:translate-y-1 active:shadow-none transition-all",
+                      app.color
                     )}
-                    style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : (themeMode !== 'default' ? {boxShadow: `4px 4px 0px 0px currentColor`} : {})}
                   >
-                    <div className="scale-90" style={{ color: 'inherit' }}>{app.icon}</div>
-                    <span className="font-black text-[10px] uppercase" style={{ color: 'inherit' }}>{app.label}</span>
+                    <div className="scale-110 text-black">{app.icon}</div>
+                    <span className="font-black text-sm uppercase tracking-tighter text-black">{app.label}</span>
                   </button>
                 ))}
               </div>
-              <div className={cn("p-6 border-t-4", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black")}>
+              
+              <div className="p-6 bg-white border-t-[6px] border-black">
                 <button 
                   onClick={() => setShowAddAppModal(false)} 
-                  className={cn(
-                    "w-full h-16 rounded-2xl border-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
-                    themeMode === 'custom' ? "bg-transparent border-current" : "bg-red-500 border-black text-white"
-                  )}
-                  style={themeMode === 'custom' ? {boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
+                  className="w-full h-16 bg-red-500 text-white border-[4px] border-black rounded-[24px] font-black uppercase text-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
                 >
                   {t.cancel}
                 </button>
@@ -1298,29 +1243,45 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Medical Info Sub-Modal */}
+      {/* Medical Info Sub-Modal - Padronizado */}
       <AnimatePresence>
         {showMedicalInfo && (
-          <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="fixed inset-0 bg-red-600 z-[3000] p-8 flex flex-col text-white overflow-y-auto">
-            <div className="flex justify-between items-center mb-8">
-                <h2 className="font-black text-4xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
-                <button onClick={() => setShowMedicalInfo(false)} className="bg-white text-black p-4 rounded-3xl border-8 border-black"><X size={40}/></button>
-            </div>
-            <div className="space-y-8 flex-1">
-                <div className="bg-black/20 p-6 rounded-[32px] border-2 border-white/30">
-                    <span className="font-black text-xl uppercase opacity-60">{t.medicalName}</span>
-                    <p className="font-black text-3xl sm:text-5xl">JOÃO DA SILVA</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[4000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, y: 50 }} 
+              animate={{ scale: 1, y: 0 }} 
+              className="w-full max-w-lg h-[80vh] rounded-[48px] border-[6px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden bg-red-600 text-white"
+            >
+              <div className="p-6 bg-red-700 border-b-[6px] border-black flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 flex items-center justify-center bg-white/20 rounded-2xl border-[4px] border-white/40">
+                    <Heart size={28} strokeWidth={4} />
+                  </div>
+                  <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
                 </div>
-                <div className="bg-black/20 p-6 rounded-[32px] border-2 border-white/30">
-                    <span className="font-black text-xl uppercase opacity-60">{t.medicalBlood}</span>
-                    <p className="font-black text-7xl">O +</p>
+                <button onClick={() => setShowMedicalInfo(false)} className="bg-white text-black p-2 rounded-xl border-[4px] border-black"><X size={28}/></button>
+              </div>
+              <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                <div className="bg-black/20 p-5 rounded-[24px] border-2 border-white/30">
+                  <span className="font-black text-xs uppercase opacity-60 tracking-wider font-sans">{t.medicalName}</span>
+                  <p className="font-black text-2xl sm:text-3xl mt-1">JOÃO DA SILVA</p>
                 </div>
-                <div className="bg-black/20 p-6 rounded-[32px] border-2 border-white/30">
-                    <span className="font-black text-xl uppercase opacity-60">{t.medicalAllergies}</span>
-                    <p className="font-black text-3xl">PENICILINA, LÁTEX</p>
+                <div className="bg-black/20 p-5 rounded-[24px] border-2 border-white/30">
+                  <span className="font-black text-xs uppercase opacity-60 tracking-wider font-sans">{t.medicalBlood}</span>
+                  <p className="font-black text-5xl mt-1">O +</p>
                 </div>
-                <div className="p-8 bg-white text-black rounded-[32px] border-8 border-black font-black text-2xl text-center">{t.medicalPhone}: (11) 99999-9999</div>
-            </div>
+                <div className="bg-black/20 p-5 rounded-[24px] border-2 border-white/30">
+                  <span className="font-black text-xs uppercase opacity-60 tracking-wider font-sans">{t.medicalAllergies}</span>
+                  <p className="font-black text-xl mt-1 uppercase">PENICILINA, LÁTEX</p>
+                </div>
+                <div className="p-6 bg-white text-black rounded-[24px] border-[4px] border-black font-black text-xl text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                  {t.medicalPhone}: (11) 99999-9999
+                </div>
+              </div>
+              <div className="p-6 bg-red-700 border-t-[6px] border-black">
+                <button onClick={() => setShowMedicalInfo(false)} className="w-full h-16 bg-white text-black rounded-[24px] border-[4px] border-black font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
