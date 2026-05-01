@@ -736,10 +736,21 @@ export default function App() {
     }
   }, [cursorPos, vibrateOnTouch]);
 
-  const handleTrackpadMove = useCallback((e: React.PointerEvent) => {
+  const handleTrackpadInteraction = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    let clientX, clientY;
+    
+    if ('touches' in e) {
+      if (e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
     
     const newPos = { 
       x: Math.max(0, Math.min(100, x)), 
@@ -747,16 +758,9 @@ export default function App() {
     };
     
     setCursorPos(newPos);
-    
-    // Update motion values for smooth visual movement
     cursorXRaw.set(newPos.x);
     cursorYRaw.set(newPos.y);
-  }, []);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    handleTrackpadMove(e);
-  };
+  }, [cursorXRaw, cursorYRaw]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -1010,12 +1014,14 @@ export default function App() {
         {/* CENTRO: TRACKPAD */}
         <div 
           id="tracks-area"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handleTrackpadMove}
+          onMouseDown={handleTrackpadInteraction}
+          onMouseMove={(e) => e.buttons > 0 && handleTrackpadInteraction(e)}
+          onTouchStart={handleTrackpadInteraction}
+          onTouchMove={handleTrackpadInteraction}
           onClick={handleClick}
           role="region"
           aria-label="Área de controle do cursor (trackpad)"
-          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none"
+          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none select-none"
         >
           {trackpadEnabled && (
             <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity" aria-hidden="true">
