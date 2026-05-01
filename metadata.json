@@ -14,7 +14,8 @@
     "vibrate",
     "notifications",
     "nfc",
-    "storage"
+    "storage",
+    "calendar"
   ],
   "majorCapabilities": []
 }

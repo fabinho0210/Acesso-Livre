@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { 
   Home, 
   ArrowLeft, 
@@ -484,8 +484,13 @@ export default function App() {
   const dwellProgressRef = useRef(0);
 
   // --- Animation Springs ---
-  const cursorX = useSpring(useMotionValue(50), { stiffness: reduceMotion ? 1500 : 450, damping: reduceMotion ? 120 : 35 });
-  const cursorY = useSpring(useMotionValue(50), { stiffness: reduceMotion ? 1500 : 450, damping: reduceMotion ? 120 : 35 });
+  const cursorXRaw = useMotionValue(50);
+  const cursorYRaw = useMotionValue(50);
+  const cursorX = useSpring(cursorXRaw, { stiffness: reduceMotion ? 1500 : 450, damping: reduceMotion ? 120 : 35 });
+  const cursorY = useSpring(cursorYRaw, { stiffness: reduceMotion ? 1500 : 450, damping: reduceMotion ? 120 : 35 });
+
+  const cursorLeft = useTransform(cursorX, [0, 100], ["0vw", "100vw"]);
+  const cursorTop = useTransform(cursorY, [0, 100], ["0dvh", "100dvh"]);
 
   // --- Utilities ---
   const triggerHaptic = (pattern: number[]) => {
@@ -731,30 +736,27 @@ export default function App() {
     }
   }, [cursorPos, vibrateOnTouch]);
 
-  const handleTrackpadMove = useCallback((e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
-    // Evita scroll da página e outros comportamentos nativos indesejados
-    if (e.cancelable) e.preventDefault();
-    
-    let clientX, clientY;
-    if ('touches' in e) {
-      if (e.touches.length === 0) return;
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
-    }
-
+  const handleTrackpadMove = useCallback((e: React.PointerEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    let x = ((clientX - rect.left) / rect.width) * 100;
-    let y = ((clientY - rect.top) / rect.height) * 100;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
     
-    // Suavização e Limites 0-100
-    setCursorPos({ 
+    const newPos = { 
       x: Math.max(0, Math.min(100, x)), 
       y: Math.max(0, Math.min(100, y)) 
-    });
+    };
+    
+    setCursorPos(newPos);
+    
+    // Update motion values for smooth visual movement
+    cursorXRaw.set(newPos.x);
+    cursorYRaw.set(newPos.y);
   }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    handleTrackpadMove(e);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -762,9 +764,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    cursorX.set(cursorPos.x);
-    cursorY.set(cursorPos.y);
-    
     const xPx = (cursorPos.x / 100) * window.innerWidth;
     const yPx = (cursorPos.y / 100) * window.innerHeight;
     const el = document.elementFromPoint(xPx, yPx);
@@ -1011,10 +1010,8 @@ export default function App() {
         {/* CENTRO: TRACKPAD */}
         <div 
           id="tracks-area"
-          onPointerDown={handleTrackpadMove}
+          onPointerDown={handlePointerDown}
           onPointerMove={handleTrackpadMove}
-          onTouchStart={(e) => e.cancelable && e.preventDefault()}
-          onTouchMove={(e) => e.cancelable && e.preventDefault()}
           onClick={handleClick}
           role="region"
           aria-label="Área de controle do cursor (trackpad)"
@@ -1069,8 +1066,8 @@ export default function App() {
             exit={{ opacity: 0, scale: 0 }}
             className="fixed pointer-events-none z-[1000]" 
             style={{ 
-              left: cursorPos.x + 'vw', 
-              top: cursorPos.y + 'dvh', 
+              left: cursorLeft, 
+              top: cursorTop, 
               x: "-50%", 
               y: "-50%" 
             }}
