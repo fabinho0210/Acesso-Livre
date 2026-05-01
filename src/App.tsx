@@ -92,32 +92,33 @@ export default function App() {
       allApps: "TODOS OS APPS",
       add: "ADICIONAR",
       accessibility: "Acessibilidade",
-      vision: "Visão",
+      vision: "Visual",
       hearing: "Audição",
-      motor: "Motora",
+      motor: "Movimento",
       help: "Ajuda",
       close: "FECHAR",
-      cancel: "Cancelar",
-      save: "Salvar Estilo",
+      cancel: "CANCELAR",
+      save: "SALVAR ESTILO",
       increaseText: "Aumentar Texto",
       magnifier: "Modo Lupa",
-      readingLine: "Linha Leitura",
+      readingLine: "Linha de Leitura",
       themes: "Temas de Contraste",
       customCores: "Personalizar Cores",
       voiceActive: "Voz Ativa",
-      voiceInactive: "Voz Desativa",
+      voiceInactive: "Voz Morda",
       visualFeedback: "Feedback Visual",
-      vibrateTouch: "Vibrar ao Tocar",
-      flashAlert: "Flash Alerta",
+      vibrateTouch: "Vibrar ao Toque",
+      flashAlert: "Flash de Alerta",
       trackpad: "Trackpad",
-      setup: "CONFIGURAÇÃO",
+      setup: "MODO CONFIGURAÇÃO",
+      configMode: "MODO CONFIGURAÇÃO",
       confirmCall: "Confirmar Ligação",
-      dwell: "Dwell",
+      dwell: "Clique Automático",
       medicalInfo: "Ficha Médica",
       whereAmI: "Onde Estou?",
       disabled: "DESATIVADO",
-      flashlightOn: "Lanterna ligada",
-      flashlightOff: "Lanterna desligada",
+      flashlightOn: "Lanterna Ligada",
+      flashlightOff: "Lanterna Desligada",
       medicalTitle: "Ficha Médica de Emergência",
       medicalBlood: "Tipo Sanguíneo",
       medicalAllergies: "Alergias",
@@ -156,8 +157,8 @@ export default function App() {
       vibrating: "Vibrar ao tocar",
       trackpadOn: "Trackpad ativado",
       trackpadOff: "Trackpad desativado",
-      lockOn: "Edição bloqueada",
-      lockOff: "Edição liberada",
+      lockOn: "Modo Configuração Desativado",
+      lockOff: "Modo Configuração Ativado",
       dwellOn: "Dwell ativado",
       dwellOff: "Dwell desativado",
       locating: "Consultando sua localização atual...",
@@ -165,7 +166,10 @@ export default function App() {
       locationDenied: "Permissão de localização negada.",
       confirmCallMsg: "Confirme se deseja ligar.",
       assistantOff: "Assistente desativado",
-      assistantOn: "Ouvindo agora..."
+      assistantOn: "ASSISTENTE ATIVO",
+      systemTitle: "SISTEMA",
+      configLocked: "Configurações Travadas",
+      configUnlocked: "Configurações Liberadas"
     },
     'en-US': {
       appName: "FREE ACCESS",
@@ -961,11 +965,12 @@ export default function App() {
           className={cn(
             "relative overflow-hidden flex flex-col items-center justify-center transition-all",
             !trackpadEnabled && "opacity-40 grayscale pointer-events-none",
-            trackpadEnabled && (themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#f3f4f6]" : (THEMES[themeMode]?.bg || THEMES.default.bg)))
+            trackpadEnabled && (themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)))
           )} 
           onMouseMove={trackpadEnabled ? handleTrackpadMove : undefined} 
           onTouchMove={trackpadEnabled ? handleTrackpadMove : undefined} 
           onClick={trackpadEnabled ? handleClick : undefined}
+          style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
         >
           {/* Assistente Listening Indicator */}
           <AnimatePresence>
@@ -979,7 +984,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 px-4 py-2 bg-black/80 rounded-full border-2 border-white/20 backdrop-blur-sm">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   <span className="font-black text-[10px] uppercase text-white tracking-widest">
-                    {t.assistantOn} {!navigator.onLine && (language === 'pt-BR' ? ' (OFFLINE)' : ' (OFFLINE)')}
+                    {t.assistantOn} {!navigator.onLine ? ' (OFFLINE)' : ''}
                   </span>
                   <div className="flex items-end gap-0.5 h-3 ml-2">
                     {[1, 2, 3, 4, 3, 2, 1].map((h, i) => (
@@ -997,10 +1002,13 @@ export default function App() {
           </AnimatePresence>
 
           {trackpadEnabled ? (
-            <div className="flex flex-col items-center justify-center pointer-events-none gap-2">
-              {/* Espaço limpo para o trackpad (removido relógio) */}
-              <div className="w-16 h-1 bg-black/10 rounded-full" />
-              <span className="font-black text-[10px] uppercase opacity-20 tracking-widest">{t.trackpad}</span>
+            <div className="flex flex-col items-center justify-center pointer-events-none opacity-10">
+              {/* Layout Clean: Apenas um respiro visual */}
+              <div className="flex gap-2">
+                <div className="w-2 h-2 rounded-full bg-current" />
+                <div className="w-2 h-2 rounded-full bg-current" />
+                <div className="w-2 h-2 rounded-full bg-current" />
+              </div>
             </div>
           ) : (
             <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4 opacity-40")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
