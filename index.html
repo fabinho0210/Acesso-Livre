@@ -65,7 +65,7 @@
     <!-- App Logic -->
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
-        const { motion, AnimatePresence, useMotionValue, useSpring } = FramerMotion;
+        const { motion, AnimatePresence, useMotionValue, useSpring } = window.Motion || {};
 
         // Custom implementation of 'cn' (simplified for single file)
         function cn(...inputs) {
