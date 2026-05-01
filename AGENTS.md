@@ -6,16 +6,19 @@ This document outlines the core principles, design system, and functional logic 
 The launcher is designed for users with severe motor impairments (Disarthria, Cerebral Palsy, Reduced Mobility) and visual/hearing needs. It bridges the gap between the user and the smartphone through a virtual mouse (trackpad), voice synthesis, and dwell-clicking.
 
 ## 2. Accessibility Guidelines (WCAG + Custom)
-- **High Contrast Mode:** Expanded to Multiple Presets (Classic, Inverted, Night, Solar) via `themeMode`. All elements use 4px black or theme-colored borders. Global contrast logic ensures icons and text are readable on all presets.
+- **High Contrast Mode:** Expanded to Multiple Presets (Classic, Inverted, Night, Solar) via `themeMode`. All elements use 4px black or theme-colored borders.
+- **Support Features:**
+  - **Colorblind Mode:** Grayscale and enhanced contrast toggle.
+  - **Reduce Motion:** Increases spring stiffness/damping for instant UI response.
 - **Multilingual Support:** Full interface and voice synthesis support for Portuguese (pt-BR), English (en-US), and Spanish (es-ES).
 - **Custom Personalization:** User can override background, element, and accent colors via `customTheme`.
 - **Font Scale:** Support for dynamic font sizing (default 22px, ranges up to 48px).
 - **Touch Targets:** Minimum 44x44px. Buttons are large (square grid layout, aspect-square).
-- **Dwell Clicking:** Automatic activation when a cursor hovers over an element for 1.5s.
+- **Dwell Clicking:** Automatic activation when a cursor hovers over an element for 1.5s. Resets on movement to new target.
 - **Visual Feedback:** 
-  - Hover states: Scale up (1.05x) and enhanced shadows.
-  - Active states: Translation (4px down/right) to simulate physical button press.
-- **Reading Line:** A horizontal guide that follows the cursor to assist in tracking text.
+  - Hover states: Scale up (1.05x), enhanced shadows, and high-frequency haptic (5ms).
+  - Active states: Translation (1-4px down/right) to simulate physical button press ( Neo-Brutalism).
+- **Reading Line:** A horizontal guide that flows beneath the cursor to assist in tracking text line-by-line.
 
 ## 3. Design System (Neo-Brutalism)
 - **Style:** Thick black borders (4px), solid black shadows (`shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]`), and vibrant solid colors.
@@ -24,8 +27,8 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
   - Secondary: Green (WhatsApp/Success), Blue (System), Red (Emergency/Stop).
   - Neutrals: Zinc-100/900 for utility buttons.
 - **Architecture:**
-  - Header (120px): Large Digital Clock and Date (Center), Accessibility/Language trigger (Left), Settings (Right).
-  - Main Grid: Scrollable area for dynamic app cards.
+  - Header (130px): Large Digital Clock and Date (Center), Accessibility trigger (Left), Settings (Right). Uses flexbox `justify-between` for responsive alignment.
+  - Main Grid: Scrollable area for dynamic app cards. Layout uses `flex-grow: 1` to fill remaining space.
   - Nav Bar (Bottom Area): Grid layout containing Microphone (Left), Clean Trackpad Area (Center), and Flashlight (Right).
   - Trackpad Area (32dvh): Proportional control area for the virtual cursor. Displays a minimalist indicator when trackpad is enabled.
 
@@ -77,12 +80,17 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - `launcher_dwellEnabled`: Boolean.
 - `launcher_highContrast`: Boolean.
 - `launcher_darkMode`: Boolean.
+- `launcher_reduceMotion`: Boolean.
+- `launcher_colorblindMode`: Boolean.
+- `launcher_vibrateOnTouch`: Boolean.
 - `launcher_trackpadEnabled`: Boolean.
 - `launcher_voiceEnabled`: Boolean.
+- `launcher_enhancedFeedback`: Boolean.
 - `launcher_fontSize`: Integer.
 - `launcher_confirmCall`: Boolean.
 - `launcher_language`: String ('pt-BR', 'en-US', 'es-ES').
 - `launcher_themeMode`: String (preset names or 'custom').
+- `launcher_customTheme`: JSON object for user colors.
 
 ## 6. Implementation Checklist
 - [x] Implement the cursor on z-index 1000+.

@@ -990,32 +990,32 @@ export default function App() {
               initial={{ scale: 0.9, y: 50 }} 
               animate={{ scale: 1, y: 0 }} 
               className={cn(
-                "w-[94%] max-w-2xl h-[85vh] rounded-[48px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-colors overflow-hidden",
+                "w-[96%] max-w-xl h-[90dvh] rounded-[48px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-colors overflow-hidden",
                 themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
               )}
               style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
             >
-              <div className={cn("p-6 flex-shrink-0 border-b-[6px] border-black flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 text-black" : "bg-transparent border-current"))}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-2xl border-[4px] border-black/20">
-                    <Accessibility size={28} strokeWidth={2.5} />
+              <div className={cn("p-6 sm:p-8 flex-shrink-0 border-b-[6px] border-black flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 text-black" : "bg-transparent border-current"))}>
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-[20px] border-[4px] border-black/20">
+                    <Accessibility size={32} strokeWidth={3} />
                   </div>
-                  <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
+                  <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
                 </div>
-                <button onClick={() => setShowAccessModal(false)} className={cn("p-2 rounded-xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={28} /></button>
+                <button onClick={() => setShowAccessModal(false)} className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
               </div>
               
-              <div className="flex-1 p-6 sm:p-8 overflow-y-auto overflow-x-hidden space-y-10 pb-32 custom-scrollbar box-border">
+              <div className="flex-1 p-6 sm:p-10 overflow-y-auto overflow-x-hidden space-y-12 pb-36 custom-scrollbar box-border">
                 {/* CONFIGURAÇÃO / EDIÇÃO */}
-                <section className="bg-black/5 p-6 rounded-[32px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full box-border">
-                  <div className="flex items-center justify-between gap-6 flex-wrap sm:flex-nowrap">
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <div className={cn("shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border-4 border-black", lockEdit ? "bg-zinc-200" : "bg-red-500 text-white")}>
-                        {lockEdit ? <Lock size={32} /> : <Unlock size={32} />}
+                <section className="bg-black/5 p-6 sm:p-8 rounded-[40px] border-[4px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] w-full box-border">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-5 min-w-0 flex-1">
+                      <div className={cn("shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", lockEdit ? "bg-zinc-200" : "bg-red-500 text-white")}>
+                        {lockEdit ? <Lock size={32} strokeWidth={2.5} /> : <Unlock size={32} strokeWidth={2.5} />}
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <h3 className="font-black text-lg sm:text-xl uppercase leading-tight truncate">{t.setup}</h3>
-                        <p className="font-bold text-[10px] sm:text-xs opacity-60 mt-1 uppercase tracking-wider leading-tight truncate">{lockEdit ? "Edição Bloqueada" : "Edição Liberada"}</p>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <h3 className="font-black text-xl sm:text-2xl uppercase leading-tight">{t.setup}</h3>
+                        <p className="font-bold text-xs sm:text-sm opacity-60 mt-1 uppercase tracking-wider leading-tight">{lockEdit ? "Edição Bloqueada" : "Edição Liberada"}</p>
                       </div>
                     </div>
                     <div className="flex-shrink-0">
@@ -1028,15 +1028,16 @@ export default function App() {
                           speak(newState ? t.lockOn : t.lockOff);
                         }}
                         className={cn(
-                          "w-[84px] h-[48px] rounded-full border-[4px] border-black transition-all relative flex items-center px-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none",
+                          "w-[88px] h-[52px] rounded-full border-[4px] border-black transition-all relative flex items-center px-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none",
                           lockEdit ? "bg-zinc-300" : "bg-green-400"
                         )}
                       >
                         <motion.div 
                           animate={{ x: lockEdit ? 0 : 36 }}
-                          className="w-8 h-8 bg-white rounded-full border-4 border-black flex items-center justify-center"
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className="w-10 h-10 bg-white rounded-full border-4 border-black flex items-center justify-center shadow-sm"
                         >
-                          <div className={cn("w-2 h-2 rounded-full", lockEdit ? "bg-zinc-400" : "bg-green-600")} />
+                          <div className={cn("w-2.5 h-2.5 rounded-full", lockEdit ? "bg-zinc-400" : "bg-green-600")} />
                         </motion.div>
                       </button>
                     </div>
