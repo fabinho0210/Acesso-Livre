@@ -523,11 +523,9 @@ export default function App() {
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const dwellProgressRef = useRef(0);
 
-  // --- Animation Springs ---
-  const cursorXRaw = useMotionValue(50);
-  const cursorYRaw = useMotionValue(50);
-  const cursorX = useSpring(cursorXRaw, { stiffness: reduceMotion ? 1500 : 450, damping: reduceMotion ? 120 : 35 });
-  const cursorY = useSpring(cursorYRaw, { stiffness: reduceMotion ? 1500 : 450, damping: reduceMotion ? 120 : 35 });
+  // --- Animation ---
+  const cursorX = useMotionValue(50);
+  const cursorY = useMotionValue(50);
 
   const cursorLeft = useTransform(cursorX, [0, 100], ["0vw", "100vw"]);
   const cursorTop = useTransform(cursorY, [0, 100], ["0dvh", "100dvh"]);
@@ -782,8 +780,8 @@ export default function App() {
     if (!trackpadRef.current) return;
     const rect = trackpadRef.current.getBoundingClientRect();
     
-    // Absolute mapping within the trackpad area (0 to 100%)
-    // This removes any "delta" logic and maps directly to the touch position
+    // Direct absolute mapping (0 to 100%)
+    // Removed all smoothing and damping for instant movement
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
     
@@ -793,9 +791,9 @@ export default function App() {
     };
     
     setCursorPos(newPos);
-    cursorXRaw.set(newPos.x);
-    cursorYRaw.set(newPos.y);
-  }, [cursorXRaw, cursorYRaw]);
+    cursorX.set(newPos.x);
+    cursorY.set(newPos.y);
+  }, [cursorX, cursorY]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     // Essential for Android: captures coordinates even if finger slides outside
@@ -822,10 +820,13 @@ export default function App() {
   useEffect(() => {
     const xPx = (cursorPos.x / 100) * window.innerWidth;
     const yPx = (cursorPos.y / 100) * window.innerHeight;
+    
+    // Absolute point detection without snapping
     const el = document.elementFromPoint(xPx, yPx);
     const target = el?.closest('button') || el?.closest('a') || el?.closest('[role="listitem"]');
-    const elementId = target?.id || (target as any)?.dataset?.appId || (target as any)?.innerText || null;
+    const elementId = target?.id || (target as any)?.dataset?.appId || null;
 
+    // Direct hover state without snapping logic
     if (elementId && elementId !== hoveredId && !elementId.includes('tracks')) {
       setHoveredId(elementId);
       if (vibrateOnTouch) triggerHaptic([5]);
@@ -833,6 +834,7 @@ export default function App() {
       setHoveredId(null);
     }
 
+    // Dwell logic stays for accessibility but now follows the absolute cursor position
     if (dwellEnabled && elementId && !elementId.includes('tracks') && !elementId.includes('mic')) {
       if (dwellTimerRef.current && hoveredId === elementId) return;
       if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
@@ -1131,8 +1133,10 @@ export default function App() {
               y: "-50%" 
             }}
           >
-            <svg viewBox="0 0 100 100" className="w-[80px] h-[80px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
-              <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrastMode || isDarkMode ? "#fff" : "#facc15"} stroke="black" strokeWidth="10" strokeLinejoin="round" />
+            <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] sm:w-[90px] sm:h-[90px] drop-shadow-2xl">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" className="opacity-50" />
+              <circle cx="50" cy="50" r="8" fill="currentColor" />
+              <path d="M50 10 L50 30 M50 70 L50 90 M10 50 L30 50 M70 50 L90 50" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
             </svg>
           </motion.div>
         )}
