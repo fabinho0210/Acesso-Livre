@@ -1,0 +1,15 @@
+{
+  "name": "Acesso Livre",
+  "short_name": "AcessoLivre",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#facc15",
+  "theme_color": "#facc15",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3034/3034875.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
