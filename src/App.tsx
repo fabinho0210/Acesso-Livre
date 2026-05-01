@@ -175,6 +175,15 @@ export default function App() {
       action: () => { speak("Contatos da família ativados."); }
     },
     { 
+      id: 'app-all', label: 'TODOS OS APPS', color: 'bg-zinc-100', 
+      icon: <LayoutGrid size={52} strokeWidth={3} />,
+      action: () => { 
+        triggerHaptic([50]);
+        speak("Abrindo todos os aplicativos");
+        window.location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
+      }
+    },
+    { 
       id: 'app-youtube', label: 'YOUTUBE', color: 'bg-red-500', 
       icon: <Youtube size={52} strokeWidth={3} />,
       action: () => abrirApp(externalApps[0])
