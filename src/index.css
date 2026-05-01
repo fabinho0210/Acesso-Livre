@@ -7,10 +7,24 @@
 }
 
 @layer base {
+  :root {
+    font-size: 16px; /* Base scaling for REM units */
+    @media (min-width: 768px) {
+      font-size: 18px;
+    }
+  }
+
   body {
-    @apply antialiased overflow-hidden;
+    @apply antialiased overflow-hidden select-none;
     height: 100dvh;
     width: 100vw;
+    background-color: white;
+  }
+
+  /* Accessibility: Visible focus for seniors */
+  :focus-visible {
+    outline: 4px solid #facc15;
+    outline-offset: 4px;
   }
 }
 
