@@ -80,7 +80,11 @@ export default function App() {
   
   // --- Theme States ---
   type ThemePreset = 'default' | 'classic' | 'inverted' | 'night' | 'solar' | 'custom';
-  const [themeMode, setThemeMode] = useState<ThemePreset>(() => (localStorage.getItem('launcher_themeMode') as ThemePreset) || 'default');
+  const [themeMode, setThemeMode] = useState<ThemePreset>(() => {
+    const saved = localStorage.getItem('launcher_themeMode');
+    const validThemes: ThemePreset[] = ['default', 'classic', 'inverted', 'night', 'solar', 'custom'];
+    return (validThemes.includes(saved as ThemePreset) ? saved : 'default') as ThemePreset;
+  });
   const [customTheme, setCustomTheme] = useState(() => {
     const saved = localStorage.getItem('launcher_customTheme');
     return saved ? JSON.parse(saved) : { bg: '#e5e7eb', fg: '#000000', accent: '#facc15' };
@@ -105,7 +109,7 @@ export default function App() {
         shadowColor: customTheme.fg
       };
     }
-    const t = THEMES[themeMode];
+    const t = THEMES[themeMode] || THEMES.default;
     return {
       background: {}, // Handled by tailwind classes
       text: {},
@@ -344,8 +348,8 @@ export default function App() {
     <div 
       className={cn(
         "fixed inset-0 flex flex-col overflow-hidden select-none transition-all duration-500 font-sans",
-        themeMode !== 'custom' && THEMES[themeMode].bg,
-        themeMode !== 'custom' && THEMES[themeMode].text,
+        themeMode !== 'custom' && (THEMES[themeMode]?.bg || THEMES.default.bg),
+        themeMode !== 'custom' && (THEMES[themeMode]?.text || THEMES.default.text),
         colorblindMode && "grayscale contrast-125"
       )}
       style={{ 
@@ -371,8 +375,8 @@ export default function App() {
       {/* Header */}
       <header className={cn(
         "h-20 flex-shrink-0 border-b-[4px] flex items-center justify-between px-6 z-[200]",
-        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg),
-        themeMode !== 'custom' ? THEMES[themeMode].cardBorder : ""
+        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
+        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : ""
       )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
         <div className="flex items-center gap-3 overflow-hidden">
           <button 
@@ -393,7 +397,7 @@ export default function App() {
           onClick={() => triggerHaptic([50])}
           className={cn(
             "w-12 h-12 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
-            themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg)
+            themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
           )}
           style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
         >
@@ -422,8 +426,8 @@ export default function App() {
               className={cn(
                 "relative flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer select-none",
                 themeMode === 'classic' || themeMode === 'night' ? "bg-black" : (themeMode === 'custom' ? "" : app.color),
-                themeMode !== 'custom' ? THEMES[themeMode].cardBorder : "",
-                themeMode !== 'custom' ? THEMES[themeMode].text : "",
+                themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "",
+                themeMode !== 'custom' ? (THEMES[themeMode]?.text || THEMES.default.text) : "",
                 hoveredId === app.id && enhancedFeedback ? "shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]" : "shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
               )}
               style={{
@@ -472,8 +476,8 @@ export default function App() {
       {/* Nav Bar */}
       <nav className={cn(
         "h-24 flex-shrink-0 border-y-[4px] grid grid-cols-4 z-[100]",
-        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg),
-        themeMode !== 'custom' ? THEMES[themeMode].cardBorder : ""
+        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
+        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : ""
       )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
         {[
           { id: 'nav-back', label: 'VOLTAR', icon: <ArrowLeft size={32} /> },
@@ -486,7 +490,7 @@ export default function App() {
             id={item.id} 
             className={cn(
               "flex flex-col items-center justify-center border-r-[2px] last:border-r-0 active:bg-gray-100 transition-colors uppercase",
-              themeMode !== 'custom' ? (themeMode === 'default' ? "border-black/20" : THEMES[themeMode].cardBorder.replace('border-', 'border-opacity-20 border-')) : ""
+              themeMode !== 'custom' ? (themeMode === 'default' ? "border-black/20" : (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder).replace('border-', 'border-opacity-20 border-')) : ""
             )}
             style={themeMode === 'custom' ? {borderColor: `${customTheme.fg}40`, color: customTheme.fg} : {}}
           >
@@ -498,11 +502,11 @@ export default function App() {
 
       {/* Assistive Controls Section */}
       <div 
-        className={cn("h-[32%] flex-shrink-0 grid grid-cols-[110px_1fr_110px] border-b-[4px] z-[100]", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#e5e7eb]" : THEMES[themeMode].bg))}
+        className={cn("h-[32%] flex-shrink-0 grid grid-cols-[110px_1fr_110px] border-b-[4px] z-[100]", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#e5e7eb]" : (THEMES[themeMode]?.bg || THEMES.default.bg)))}
         style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
       >
         <div 
-          className={cn("border-r-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg))}
+          className={cn("border-r-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)))}
           style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
         >
           <button 
@@ -523,7 +527,7 @@ export default function App() {
           className={cn(
             "relative overflow-hidden flex flex-col items-center justify-center transition-all",
             !trackpadEnabled && "opacity-40 grayscale pointer-events-none",
-            trackpadEnabled && (themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#f3f4f6]" : THEMES[themeMode].bg))
+            trackpadEnabled && (themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#f3f4f6]" : (THEMES[themeMode]?.bg || THEMES.default.bg)))
           )} 
           onMouseMove={trackpadEnabled ? handleTrackpadMove : undefined} 
           onTouchMove={trackpadEnabled ? handleTrackpadMove : undefined} 
@@ -552,7 +556,7 @@ export default function App() {
             </div>
           )}
         </div>
-        <div className={cn("border-l-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : THEMES[themeMode].bg, themeMode !== 'custom' ? THEMES[themeMode].cardBorder : "")} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+        <div className={cn("border-l-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (THEMES[themeMode]?.bg || THEMES.default.bg), themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "")} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
           <button 
             id="flashlight-btn" 
             onClick={() => { 
