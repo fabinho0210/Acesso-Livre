@@ -736,19 +736,14 @@ export default function App() {
     }
   }, [cursorPos, vibrateOnTouch]);
 
-  const handleTrackpadInteraction = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    let clientX, clientY;
-    
-    if ('touches' in e) {
-      if (e.touches.length === 0) return;
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
-    }
+  const trackpadRef = useRef<HTMLDivElement>(null);
 
-    const rect = e.currentTarget.getBoundingClientRect();
+  const handleTrackpadInteraction = useCallback((clientX: number, clientY: number) => {
+    if (!trackpadRef.current) return;
+    const rect = trackpadRef.current.getBoundingClientRect();
+    
+    // Absolute mapping within the trackpad area (0 to 100%)
+    // This removes any "delta" logic and maps directly to the touch position
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
     
@@ -761,6 +756,23 @@ export default function App() {
     cursorXRaw.set(newPos.x);
     cursorYRaw.set(newPos.y);
   }, [cursorXRaw, cursorYRaw]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    // Essential for Android: captures coordinates even if finger slides outside
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    handleTrackpadInteraction(e.clientX, e.clientY);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    // If the pointer is down (buttons > 0) or it's a touch (pointerType === 'touch')
+    if (e.buttons > 0 || e.pointerType === 'touch') {
+      handleTrackpadInteraction(e.clientX, e.clientY);
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -1013,15 +1025,16 @@ export default function App() {
 
         {/* CENTRO: TRACKPAD */}
         <div 
+          ref={trackpadRef}
           id="tracks-area"
-          onMouseDown={handleTrackpadInteraction}
-          onMouseMove={(e) => e.buttons > 0 && handleTrackpadInteraction(e)}
-          onTouchStart={handleTrackpadInteraction}
-          onTouchMove={handleTrackpadInteraction}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
           onClick={handleClick}
           role="region"
           aria-label="Área de controle do cursor (trackpad)"
-          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none select-none"
+          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none select-none overflow-hidden"
         >
           {trackpadEnabled && (
             <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity" aria-hidden="true">
