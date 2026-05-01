@@ -1,17 +1,717 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Acesso Livre - Launcher de Acessibilidade</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#facc15">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="src/main.tsx"></script>
-  </body>
-</html>
+    <meta name="theme-color" content="#facc15">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply antialiased overflow-hidden;
+                height: 100dvh;
+                width: 100vw;
+            }
+        }
+        @layer utilities {
+            .safe-top { padding-top: env(safe-area-inset-top); }
+            .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+            .h-dvh { height: 100dvh; }
+        }
+    </style>
+
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Libraries via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- App Logic -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+        const { motion, AnimatePresence, useMotionValue, useSpring } = FramerMotion;
+
+        // Custom implementation of 'cn' (simplified for single file)
+        function cn(...inputs) {
+            return inputs.filter(Boolean).join(' ');
+        }
+
+        // Icons handled via Lucide's data-lucide attribute
+        const Icon = ({ name, size = 24, className = '', strokeWidth = 2 }) => {
+            const iconRef = useRef(null);
+            
+            useEffect(() => {
+                if (iconRef.current && window.lucide) {
+                    iconRef.current.innerHTML = '';
+                    const temp = document.createElement('div');
+                    temp.setAttribute('data-lucide', name);
+                    iconRef.current.appendChild(temp);
+                    
+                    window.lucide.createIcons({
+                        icons: { [name]: window.lucide.icons[name] },
+                        attrs: { 
+                            class: className,
+                            width: size,
+                            height: size,
+                            'stroke-width': strokeWidth
+                        }
+                    });
+                }
+            }, [name, size, className, strokeWidth]);
+
+            return <span ref={iconRef} className="inline-block leading-none" />;
+        };
+
+        // Translations (Copied from App.tsx)
+        const translations = {
+            pt: {
+                title: "Acesso Livre",
+                settings: "Acessibilidade",
+                voiceGuide: "Guia de Voz",
+                performance: "Desempenho",
+                reduceAnimations: "Reduzir Animações",
+                feedback: "Feedback",
+                vibration: "Vibração (Feedback Tátil)",
+                clickEffects: "Efeitos de Clique",
+                appearance: "Aparência",
+                darkMode: "Modo Escuro",
+                highContrastEnable: "ATIVAR ALTO CONTRASTE",
+                highContrastDisable: "DESATIVAR ALTO CONTRASTE",
+                themeColors: "Temas de Cor",
+                operation: "Operação",
+                assistiveMode: "MODO ASSISTIVO (Trackpad)",
+                directMode: "MODO DIRETO (Toque)",
+                done: "CONCLUIR",
+                understand: "Entendi",
+                back: "Voltar",
+                home: "Início",
+                help: "Ajuda",
+                menu: "Menu",
+                newApp: "Novo App",
+                trackpad: "TRACKPAD",
+                appOpened: "Abrindo",
+                clicking: "Clicando",
+                scrollingUp: "Subindo",
+                scrollingDown: "Descendo",
+                moving: "Movendo",
+                resetVision: "Limpar visão",
+                settingsOpened: "Configurações",
+                voiceGuideOpened: "Guia de voz",
+                darkModeOn: "Escuro ativado",
+                darkModeOff: "Claro ativado",
+                contrastChanged: "Alto contraste alterado",
+                zoomIn: "Zoom aumentado",
+                zoomOut: "Zoom reduzido",
+                visionRestored: "Visão restaurada",
+                youSaid: "Você disse",
+                listening: "Ouvindo comandos",
+                removeApp: "Remover este aplicativo?",
+                appName: "Nome do aplicativo:",
+                language: "Idioma",
+                dwellTitle: "Clique por Permanência",
+                dwellDesc: "Clica automaticamente ao pairar sobre um item",
+                permanentLauncher: "Launcher Permanente",
+                howToPin: "Como fixar no celular",
+                pinTitle: "Tornar Permanente",
+                pinInstructions: [
+                    "1. Abra este site no Chrome ou Safari",
+                    "2. Clique no menu (3 pontos) ou compartilhar",
+                    "3. Escolha 'Adicionar à tela de início'",
+                    "4. Android: Mude o 'App de Início' nos Ajustes."
+                ],
+                colorblindMode: "Modo para Daltônicos",
+                colorblindTypes: {
+                    none: "Nenhum",
+                    protanopia: "Protanopia",
+                    deuteranopia: "Deuteranopia",
+                    tritanopia: "Tritanopia"
+                },
+                fontSizeTitle: "Tamanho da Fonte",
+                fontSizeChanged: "Tamanho da fonte alterado",
+                small: "Pequeno",
+                medium: "Médio",
+                large: "Grande",
+                commands: {
+                    basic: "Comandos Básicos",
+                    nav: "Navegação e Tela",
+                    at: "Acessibilidade (Disartria)",
+                    click: "Clique, Abrir, Sim",
+                    back: "Voltar",
+                    home: "Início, Home, Casa",
+                    up: "Subir, Cima",
+                    down: "Descer, Baixo",
+                    move: "Mover para [Lado]",
+                    zoom: "Aumentar / Diminuir Zoom",
+                    settings: "Modo Escuro/Claro, Alto Contraste, Tamanho da Fonte",
+                    disartriaDica: "Abreviações simplificadas para fala lenta ou parcial:",
+                }
+            },
+            en: {
+                title: "Free Access",
+                settings: "Accessibility",
+                voiceGuide: "Voice Guide",
+                performance: "Performance",
+                reduceAnimations: "Reduce Animations",
+                feedback: "Feedback",
+                vibration: "Vibration (Haptic)",
+                clickEffects: "Click Effects",
+                appearance: "Appearance",
+                darkMode: "Dark Mode",
+                highContrastEnable: "ENABLE HIGH CONTRAST",
+                highContrastDisable: "DISABLE HIGH CONTRAST",
+                themeColors: "Theme Colors",
+                operation: "Operation",
+                assistiveMode: "ASSISTIVE MODE (Trackpad)",
+                directMode: "DIRECT MODE (Touch)",
+                done: "DONE",
+                understand: "Got it",
+                back: "Back",
+                home: "Home",
+                help: "Help",
+                menu: "Menu",
+                newApp: "New App",
+                trackpad: "TRACKPAD",
+                appOpened: "Opening",
+                clicking: "Clicking",
+                scrollingUp: "Going up",
+                scrollingDown: "Going down",
+                moving: "Moving",
+                resetVision: "Clear view",
+                settingsOpened: "Settings",
+                voiceGuideOpened: "Voice guide",
+                darkModeOn: "Dark mode on",
+                darkModeOff: "Light mode on",
+                contrastChanged: "Contrast changed",
+                zoomIn: "Zoomed in",
+                zoomOut: "Zoomed out",
+                visionRestored: "View restored",
+                youSaid: "You said",
+                listening: "Listening for commands",
+                removeApp: "Remove this app?",
+                appName: "App name:",
+                language: "Language",
+                dwellTitle: "Dwell Clicking",
+                dwellDesc: "Automatically clicks after hovering over an item",
+                permanentLauncher: "Permanent Launcher",
+                howToPin: "How to pin to mobile",
+                pinTitle: "Make Permanent",
+                pinInstructions: [
+                    "1. Open this site in Chrome or Safari",
+                    "2. Click the menu (3 dots) or Share",
+                    "3. Choose 'Add to Home Screen'",
+                    "4. Android: Change 'Home App' in Settings."
+                ],
+                colorblindMode: "Colorblind Mode",
+                colorblindTypes: {
+                    none: "None",
+                    protanopia: "Protanopia",
+                    deuteranopia: "Deuteranopia",
+                    tritanopia: "Tritanopia"
+                },
+                fontSizeTitle: "Font Size",
+                fontSizeChanged: "Font size changed",
+                small: "Small",
+                medium: "Medium",
+                large: "Large",
+                commands: {
+                    basic: "Basic Commands",
+                    nav: "Nav & Screen",
+                    at: "Accessibility (Dysarthria)",
+                    click: "Click, Open, Yes",
+                    back: "Back",
+                    home: "Home, Start",
+                    up: "Up, Scroll up",
+                    down: "Down, Scroll down",
+                    move: "Move [Direction]",
+                    zoom: "Zoom: More, Less, Reset",
+                    settings: "Dark/Light Mode, High Contrast, Font Size",
+                    disartriaDica: "Simplified abbreviations for slow or partial speech:",
+                }
+            },
+            es: {
+                title: "Acceso Libre",
+                settings: "Accesibilidad",
+                voiceGuide: "Guía de Voz",
+                performance: "Rendimiento",
+                reduceAnimations: "Reducir Animaciones",
+                feedback: "Comentarios",
+                vibration: "Vibración (Háptico)",
+                clickEffects: "Efectos de Clic",
+                appearance: "Apariencia",
+                darkMode: "Modo Oscuro",
+                highContrastEnable: "ACTIVAR ALTO CONTRASTE",
+                highContrastDisable: "DESAKTIVAR ALTO CONTRASTE",
+                themeColors: "Temas de Color",
+                operation: "Operación",
+                assistiveMode: "MODO ASISTIVO (Trackpad)",
+                directMode: "MODO DIRETO (Toque)",
+                done: "HECHO",
+                understand: "Entendido",
+                back: "Volver",
+                home: "Inicio",
+                help: "Ayuda",
+                menu: "Menú",
+                newApp: "Nueva App",
+                trackpad: "TRACKPAD",
+                appOpened: "Abriendo",
+                clicking: "Haciendo clic",
+                scrollingUp: "Subiendo",
+                scrollingDown: "Bajando",
+                moving: "Moviendo",
+                resetVision: "Ver todo",
+                settingsOpened: "Ajustes",
+                voiceGuideOpened: "Guía de voz",
+                darkModeOn: "Oscuro activado",
+                darkModeOff: "Claro activado",
+                contrastChanged: "Contraste cambiado",
+                zoomIn: "Aumentar zoom",
+                zoomOut: "Disminuir zoom",
+                visionRestored: "Visión restaurada",
+                youSaid: "Dijiste",
+                listening: "Escuchando comandos",
+                removeApp: "¿Eliminar esta aplicación?",
+                appName: "Nombre de la aplicación:",
+                language: "Idioma",
+                dwellTitle: "Clic por Permanencia",
+                dwellDesc: "Hace clic automáticamente al pasar sobre un elemento",
+                permanentLauncher: "Launcher Permanente",
+                howToPin: "Cómo fijar en el móvil",
+                pinTitle: "Hacer Permanente",
+                pinInstructions: [
+                    "1. Abre este sitio en Chrome o Safari",
+                    "2. Haz clic en el menú (3 puntos) o Compartir",
+                    "3. Elige 'Añadir a la pantalla de inicio'",
+                    "4. Android: Cambia 'App de Inicio' en Ajustes."
+                ],
+                colorblindMode: "Modo para Daltónicos",
+                colorblindTypes: {
+                    none: "Ninguno",
+                    protanopia: "Protanopia",
+                    deuteranopia: "Deuteranopia",
+                    tritanopia: "Tritanopia"
+                },
+                fontSizeTitle: "Tamaño de Fuente",
+                fontSizeChanged: "Tamaño de fuente cambiado",
+                small: "Pequeño",
+                medium: "Medio",
+                large: "Grande",
+                commands: {
+                    basic: "Comandos Básicos",
+                    nav: "Navegação e Pantalla",
+                    at: "Accesibilidad (Disartria)",
+                    click: "Clic, Abrir, Sí",
+                    back: "Volver",
+                    home: "Inicio, Casa",
+                    up: "Subir, Arriba",
+                    down: "Bajar, Abajo",
+                    move: "Mover a [Lado]",
+                    zoom: "Zoom: Más, Menos, Reset",
+                    settings: "Modo Oscuro/Claro, Alto Contraste, Tamaño de Fuente",
+                    disartriaDica: "Abreviaturas simplificadas para habla lenta o parcial:",
+                }
+            }
+        };
+
+        // Voice handling (Global)
+        let recognition = null;
+        const getRecognition = () => {
+            if (typeof window === 'undefined') return null;
+            if (recognition) return recognition;
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.continuous = true;
+                recognition.interimResults = false;
+            }
+            return recognition;
+        };
+
+        function App() {
+            const [lang, setLang] = useState(localStorage.getItem('launcher_lang') || 'pt');
+            const t = translations[lang];
+
+            const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
+            const [isClicking, setIsClicking] = useState(false);
+            const [clickRipples, setClickRipples] = useState([]);
+            const [isVoiceActive, setIsVoiceActive] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [showVoiceGuide, setShowVoiceGuide] = useState(false);
+            const [showPinGuide, setShowPinGuide] = useState(false);
+            const [lastCommand, setLastCommand] = useState('');
+            const [highContrast, setHighContrast] = useState(localStorage.getItem('launcher_highContrast') === 'true');
+            const [dwellEnabled, setDwellEnabled] = useState(localStorage.getItem('launcher_dwellEnabled') === 'true');
+            const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
+            const [isAssistiveMode, setIsAssistiveMode] = useState(localStorage.getItem('launcher_assistiveMode') !== 'false');
+            const [systemTheme, setSystemTheme] = useState('yellow');
+            const [colorblindMode, setColorblindMode] = useState(localStorage.getItem('launcher_colorblindMode') || 'none');
+            const [vibrationEnabled, setVibrationEnabled] = useState(localStorage.getItem('launcher_vibration') !== 'false');
+            const [advancedVisualsEnabled, setAdvancedVisualsEnabled] = useState(true);
+            const [lowPerformanceMode, setLowPerformanceMode] = useState(localStorage.getItem('launcher_lowPerformance') === 'true');
+            const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('launcher_darkMode') === 'true');
+            const [isHoveringElement, setIsHoveringElement] = useState(null);
+            const [hoveredId, setHoveredId] = useState(null);
+            const [dwellProgress, setDwellProgress] = useState(0);
+            const [fontSize, setFontSize] = useState(localStorage.getItem('launcher_fontSize') || 'medium');
+            const [zoomScale, setZoomScale] = useState(1);
+            const [panPos, setPanPos] = useState({ x: 0, y: 0 });
+
+            const cursorX = useSpring(useMotionValue(50), { stiffness: 300, damping: 30 });
+            const cursorY = useSpring(useMotionValue(50), { stiffness: 300, damping: 30 });
+
+            const dwellTimerRef = useRef(null);
+            const dwellProgressRef = useRef(0);
+
+            const [apps, setApps] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('launcher_apps');
+                    if (saved) return JSON.parse(saved);
+                } catch (e) {}
+                return [
+                    { id: 'app-phone', label: lang === 'pt' ? 'Telefone' : 'Phone', color: 'bg-green-500' },
+                    { id: 'app-whatsapp', label: 'WhatsApp', color: 'bg-emerald-600' },
+                    { id: 'app-emergency', label: 'Emergência', color: 'bg-red-600' },
+                    { id: 'app-family', label: 'Família', color: 'bg-purple-500' },
+                ];
+            });
+
+            useEffect(() => {
+                localStorage.setItem('launcher_apps', JSON.stringify(apps));
+            }, [apps]);
+
+            const saveSettings = (name, value) => {
+                localStorage.setItem(`launcher_${name}`, String(value));
+            };
+
+            const getFontSizeClass = () => {
+                switch (fontSize) {
+                    case 'small': return 'text-sm';
+                    case 'large': return 'text-2xl';
+                    default: return 'text-xl';
+                }
+            };
+
+            const getThemeColor = () => {
+                if (highContrast) return 'bg-white text-black ring-4 ring-white ring-offset-4 ring-offset-black';
+                switch (systemTheme) {
+                    case 'yellow': return 'bg-yellow-400 text-black';
+                    case 'blue': return 'bg-blue-400 text-black';
+                    case 'green': return 'bg-green-400 text-black';
+                    case 'purple': return 'bg-purple-500 text-white';
+                    default: return 'bg-yellow-400 text-black';
+                }
+            };
+
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = lang === 'pt' ? 'pt-BR' : (lang === 'es' ? 'es-ES' : 'en-US');
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            const triggerHaptic = (pattern = [40]) => {
+                if (vibrationEnabled && 'vibrate' in navigator) {
+                    navigator.vibrate(pattern);
+                }
+            };
+
+            const handleClick = () => {
+                setIsClicking(true);
+                triggerHaptic();
+                setTimeout(() => setIsClicking(false), 150);
+
+                const headerH = window.innerWidth < 640 ? 80 : 96;
+                const mainH = (window.innerHeight * 0.6) - headerH;
+                const xPx = (cursorPos.x / 100) * window.innerWidth;
+                const yPx = (cursorPos.y / 100) * mainH + headerH;
+                const el = document.elementFromPoint(xPx, yPx);
+                
+                if (el && el instanceof HTMLElement) {
+                    const btn = el.closest('button');
+                    if (btn) btn.click();
+                    else el.click();
+                }
+            };
+
+            const handleTrackpadMove = useCallback((e) => {
+                const touch = e.touches ? e.touches[0] : e;
+                const rect = document.getElementById('main-trackpad').getBoundingClientRect();
+                const x = ((touch.clientX - rect.left) / rect.width) * 100;
+                const y = ((touch.clientY - rect.top) / rect.height) * 100;
+                setCursorPos({ 
+                    x: Math.max(0, Math.min(100, x)), 
+                    y: Math.max(0, Math.min(100, y)) 
+                });
+            }, []);
+
+            useEffect(() => {
+                cursorX.set(cursorPos.x);
+                cursorY.set(cursorPos.y);
+
+                const checkHover = () => {
+                    const headerH = window.innerWidth < 640 ? 80 : 96;
+                    const mainH = (window.innerHeight * 0.6) - headerH;
+                    const xPx = (cursorPos.x / 100) * window.innerWidth;
+                    const yPx = (cursorPos.y / 100) * mainH + headerH;
+                    const el = document.elementFromPoint(xPx, yPx);
+                    const elementId = el?.id || el?.closest('button')?.id || null;
+
+                    if (elementId && elementId !== hoveredId) {
+                        setHoveredId(elementId);
+                        const label = el?.getAttribute('aria-label') || el?.textContent || 'Botão';
+                        setIsHoveringElement(label.substring(0, 20));
+                        if (screenReaderEnabled) speak(label);
+                        triggerHaptic([10]);
+                    } else if (!elementId && hoveredId) {
+                        setHoveredId(null);
+                        setIsHoveringElement(null);
+                    }
+
+                    if (dwellEnabled && elementId && elementId !== 'main-trackpad') {
+                        if (dwellTimerRef.current && hoveredId === elementId) return;
+                        if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
+                        
+                        dwellProgressRef.current = 0;
+                        setDwellProgress(0);
+                        dwellTimerRef.current = setInterval(() => {
+                            dwellProgressRef.current += 10;
+                            setDwellProgress(dwellProgressRef.current);
+                            if (dwellProgressRef.current >= 100) {
+                                handleClick();
+                                clearInterval(dwellTimerRef.current);
+                                dwellTimerRef.current = null;
+                            }
+                        }, 150);
+                    } else if (!elementId || elementId === 'main-trackpad') {
+                        if (dwellTimerRef.current) {
+                            clearInterval(dwellTimerRef.current);
+                            dwellTimerRef.current = null;
+                            setDwellProgress(0);
+                        }
+                    }
+                };
+                checkHover();
+            }, [cursorPos, dwellEnabled, hoveredId]);
+
+            useEffect(() => {
+                const rec = getRecognition();
+                if (!rec) return;
+                rec.onresult = (event) => {
+                    const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                    setLastCommand(command);
+                    setTimeout(() => setLastCommand(''), 3000);
+                    
+                    if (command.includes('clique') || command.includes('click')) {
+                        handleClick();
+                    } else if (command.includes('cima') || command.includes('up')) {
+                        setPanPos(p => ({ ...p, y: Math.min(p.y + 200, 0) }));
+                    } else if (command.includes('baixo') || command.includes('down')) {
+                        setPanPos(p => ({ ...p, y: p.y - 200 }));
+                    } else if (command.includes('voltar') || command.includes('back')) {
+                        triggerHaptic([30]);
+                    } else if (command.includes('início') || command.includes('home')) {
+                        setPanPos({ x: 0, y: 0 }); setZoomScale(1);
+                    }
+                };
+            }, [apps, lang]);
+
+            const toggleVoice = () => {
+                const rec = getRecognition();
+                if (!rec) return;
+                if (isVoiceActive) { rec.stop(); setIsVoiceActive(false); }
+                else { rec.start(); setIsVoiceActive(true); speak("Ouvindo"); }
+            };
+
+            const addApp = () => {
+                const name = prompt(t.appName);
+                if (name) {
+                    setApps([...apps, { id: `app-${Date.now()}`, label: name, color: 'bg-blue-500' }]);
+                }
+            };
+
+            return (
+                <div 
+                    className={cn(
+                        "fixed inset-0 h-dvh flex flex-col overflow-hidden select-none transition-colors duration-500 safe-top safe-bottom", 
+                        highContrast ? "bg-black text-white" : (isDarkMode ? "bg-zinc-950 text-white" : "bg-[#f5f5f0] text-gray-900")
+                    )}
+                    style={{ filter: colorblindMode !== 'none' ? `url(#${colorblindMode})` : 'none' }}
+                >
+                    <header className={cn(
+                        "h-20 sm:h-24 px-4 sm:px-8 flex items-center justify-between border-b-4 border-black transition-colors duration-500", 
+                        highContrast ? "bg-zinc-950 border-white/20 text-white" : (isDarkMode ? "bg-zinc-900 border-black" : "bg-white border-black")
+                    )}>
+                        <div className="flex items-center gap-4">
+                            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", getThemeColor())}>
+                                <Icon name="mouse-pointer-2" size={28} strokeWidth={3} />
+                            </div>
+                            <h1 className="font-black uppercase italic text-xl sm:text-2xl">{t.title}</h1>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            {lastCommand && (
+                                <div className="px-4 py-1 bg-yellow-400 text-black border-2 border-black font-bold text-xs uppercase hidden sm:block">
+                                    {t.youSaid}: "{lastCommand}"
+                                </div>
+                            )}
+                            <button id="settings-btn" onClick={() => setShowSettings(true)} className="p-3 bg-white text-black border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                                <Icon name="settings" size={32} />
+                            </button>
+                        </div>
+                    </header>
+
+                    <main className={cn("relative flex-1", isAssistiveMode ? "overflow-hidden" : "overflow-y-auto")}>
+                        <motion.div animate={{ scale: zoomScale, x: panPos.x, y: panPos.y }} className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-max">
+                            {apps.map(app => (
+                                <div key={app.id} className="relative aspect-square">
+                                    <button 
+                                        id={app.id}
+                                        className={cn(
+                                            "w-full h-full p-6 rounded-[32px] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center transition-all",
+                                            hoveredId === app.id ? getThemeColor() + " scale-105" : (app.color || "bg-blue-500")
+                                        )}
+                                    >
+                                        <Icon name="plus" size={48} strokeWidth={3} />
+                                        <span className={cn("font-black uppercase mt-2", getFontSizeClass())}>{app.label}</span>
+                                    </button>
+                                </div>
+                            ))}
+                            <button id="add-app-btn" onClick={addApp} className="border-4 border-dashed border-gray-400 p-6 rounded-[32px] flex flex-col items-center justify-center h-full min-h-[160px]">
+                                <Icon name="plus" size={48} className="text-gray-400" />
+                                <span className="font-black uppercase text-xs mt-2 text-gray-400">{t.newApp}</span>
+                            </button>
+                        </motion.div>
+                    </main>
+
+                    {isAssistiveMode && (
+                        <div className="fixed inset-0 pointer-events-none z-[300]">
+                            <motion.div 
+                                className="absolute top-0 left-0" 
+                                animate={{ x: `${cursorPos.x}vw`, y: `${cursorPos.y}vh` }}
+                                style={{ translateX: '-10px', translateY: '-10px', marginTop: 'var(--header-height, 80px)' }}
+                            >
+                                <div className="relative">
+                                    {dwellEnabled && dwellProgress > 0 && (
+                                        <div className="absolute -top-4 -left-4 w-20 h-20 flex items-center justify-center -rotate-90">
+                                            <svg className="w-full h-full"><circle cx="40" cy="40" r="34" stroke="black" strokeWidth="8" fill="transparent" strokeDasharray="213" strokeDashoffset={213 - (213 * dwellProgress) / 100} className="transition-all" /></svg>
+                                        </div>
+                                    )}
+                                    <Icon name="mouse-pointer-2" size={64} className={cn("drop-shadow-lg", highContrast ? "text-white" : "text-black fill-yellow-400")} />
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {isAssistiveMode && (
+                        <section className="bg-white border-t-4 border-black h-[40vh] min-h-[240px] flex flex-col">
+                            <div className="h-16 flex border-b-4 border-black divide-x-4 divide-black">
+                                <button id="back-nav" className="flex-1 flex flex-col items-center justify-center"><Icon name="arrow-left" /><span className="text-[10px] font-black">{t.back}</span></button>
+                                <button id="help-nav" onClick={() => setShowVoiceGuide(true)} className="flex-1 flex flex-col items-center justify-center"><Icon name="search" /><span className="text-[10px] font-black">{t.help}</span></button>
+                                <button id="home-nav" onClick={() => {setPanPos({x:0,y:0}); setZoomScale(1);}} className="flex-1 flex flex-col items-center justify-center"><Icon name="home" /><span className="text-[10px] font-black">{t.home}</span></button>
+                                <button id="menu-nav" className="flex-1 flex flex-col items-center justify-center"><Icon name="menu" /><span className="text-[10px] font-black">{t.menu}</span></button>
+                            </div>
+                            <div className="flex-1 flex">
+                                <button onClick={toggleVoice} className="w-24 border-r-4 border-black flex items-center justify-center">
+                                    <div className={cn("w-14 h-14 rounded-full border-4 border-black flex items-center justify-center", isVoiceActive ? "bg-red-500 animate-pulse" : "bg-gray-100")}>
+                                        <Icon name={isVoiceActive ? "mic" : "mic-off"} />
+                                    </div>
+                                </button>
+                                <div id="main-trackpad" className="flex-1 bg-gray-50 flex items-center justify-center touch-none" onTouchMove={handleTrackpadMove} onMouseMove={(e) => e.buttons === 1 && handleTrackpadMove(e)} onClick={handleClick}>
+                                    <span className="font-black text-xs opacity-10 tracking-[0.5em]">{t.trackpad}</span>
+                                </div>
+                                <div className="w-24 border-l-4 border-black flex flex-col divide-y-4 divide-black">
+                                    <button onClick={() => setZoomScale(s => Math.min(s + 0.3, 3))} className="flex-1 flex items-center justify-center"><Icon name="zoom-in" /></button>
+                                    <button onClick={() => setZoomScale(s => Math.max(s - 0.3, 0.5))} className="flex-1 flex items-center justify-center"><Icon name="zoom-out" /></button>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    <AnimatePresence>
+                        {showSettings && (
+                            <motion.div initial={{ x: '100dvw' }} animate={{ x: 0 }} exit={{ x: '100dvw' }} className="fixed inset-0 z-[500] bg-white p-8 flex flex-col overflow-y-auto">
+                                <div className="flex justify-between items-center mb-10">
+                                    <h2 className="text-3xl font-black italic uppercase">{t.settings}</h2>
+                                    <button onClick={() => setShowSettings(false)} className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center"><Icon name="x" /></button>
+                                </div>
+                                <div className="space-y-12 pb-20">
+                                    <section className="space-y-4">
+                                        <h3 className="text-xs font-black uppercase opacity-20 tracking-widest">{t.language}</h3>
+                                        <div className="flex gap-4">
+                                            {['pt', 'en', 'es'].map(l => (
+                                                <button key={l} onClick={() => {setLang(l); saveSettings('lang', l);}} className={cn("flex-1 py-4 border-4 border-black rounded-2xl font-black uppercase", lang === l ? "bg-yellow-400" : "bg-gray-100")}>{l}</button>
+                                            ))}
+                                        </div>
+                                    </section>
+                                    
+                                    <section className="space-y-4">
+                                        <h1 className="text-xs font-black uppercase opacity-20 tracking-widest">{t.appearance}</h1>
+                                        <button onClick={() => {setHighContrast(!highContrast); saveSettings('highContrast', !highContrast);}} className={cn("w-full py-6 border-4 border-black font-black uppercase text-xl rounded-2xl", highContrast ? "bg-white text-black" : "bg-black text-yellow-400")}>
+                                            {highContrast ? t.highContrastDisable : t.highContrastEnable}
+                                        </button>
+                                    </section>
+                                </div>
+                                <button onClick={() => setShowSettings(false)} className={cn("mt-auto py-6 border-4 border-black rounded-2xl font-black text-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", getThemeColor())}>CONCLUIR</button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+                        <defs>
+                            <filter id="protanopia"><feColorMatrix type="matrix" values="0.567, 0.433, 0, 0, 0, 0.558, 0.442, 0, 0, 0, 0, 0.242, 0.758, 0, 0, 0, 0, 0, 1, 0" /></filter>
+                            <filter id="deuteranopia"><feColorMatrix type="matrix" values="0.625, 0.375, 0, 0, 0, 0.7, 0.3, 0, 0, 0, 0, 0.3, 0.7, 0, 0, 0, 0, 0, 1, 0" /></filter>
+                            <filter id="tritanopia"><feColorMatrix type="matrix" values="0.95, 0.05, 0, 0, 0, 0, 0.433, 0.567, 0, 0, 0, 0.475, 0.525, 0, 0, 0, 0, 0, 1, 0" /></filter>
+                        </defs>
+                    </svg>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Auto-init Lucide icons
+        window.addEventListener('load', () => {
+            if (window.lucide) window.lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
