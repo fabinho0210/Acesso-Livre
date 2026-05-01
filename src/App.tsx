@@ -790,7 +790,7 @@ export default function App() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 flex flex-col overflow-hidden select-none font-sans h-[100dvh]",
+        "fixed inset-0 flex flex-col overflow-hidden select-none font-sans h-[100dvh] w-[100vw]",
         themeMode !== 'custom' && (THEMES[themeMode]?.bg || THEMES.default.bg),
         themeMode !== 'custom' && (THEMES[themeMode]?.text || THEMES.default.text),
         colorblindMode && "grayscale contrast-125"
