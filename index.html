@@ -211,6 +211,8 @@
             const [isAssistiveMode, setIsAssistiveMode] = useState(localStorage.getItem('launcher_assistiveMode') !== 'false');
             const [fontSize, setFontSize] = useState(localStorage.getItem('launcher_fontSize') || 'medium');
             const [colorblindMode, setColorblindMode] = useState(localStorage.getItem('launcher_colorblindMode') || 'none');
+            const [zoomScale, setZoomScale] = useState(1);
+            const [panPos, setPanPos] = useState({ x: 0, y: 0 });
             
             const dwellTimerRef = useRef(null);
 
@@ -344,7 +346,7 @@
                                     id={app.id}
                                     onClick={() => alert(`${t.title}: ${app.label}`)}
                                     className={cn(
-                                        "aspect-square rounded-[40px] border-4 border-black neo-shadow flex flex-col items-center justify-center p-4 transition-all active:scale-95",
+                                        "aspect-square rounded-xl border-4 border-black neo-shadow flex flex-col items-center justify-center p-4 transition-all active:scale-95",
                                         hoveredId === app.id ? "bg-white text-black scale-105" : (app.color || "bg-blue-500"),
                                         highContrast && "bg-zinc-900 border-white border-[6px]"
                                     )}
@@ -433,8 +435,18 @@
                                     </div>
 
                                     <div className="w-24 border-l-4 border-black flex flex-col divide-y-4 divide-black">
-                                        <button className="flex-1 flex items-center justify-center"><Icon name="zoom-in" size={32} /></button>
-                                        <button className="flex-1 flex items-center justify-center"><Icon name="zoom-out" size={32} /></button>
+                                        <button 
+                                            onClick={() => setZoomScale(prev => Math.min(prev + 0.2, 3))}
+                                            className="flex-1 flex items-center justify-center"
+                                        >
+                                            <Icon name="zoom-in" size={32} />
+                                        </button>
+                                        <button 
+                                            onClick={() => setZoomScale(prev => Math.max(prev - 0.2, 0.5))}
+                                            className="flex-1 flex items-center justify-center"
+                                        >
+                                            <Icon name="zoom-out" size={32} />
+                                        </button>
                                     </div>
                                 </div>
                             </section>
@@ -466,7 +478,7 @@
                                     <button 
                                         onClick={() => { setHighContrast(!highContrast); saveSetting('highContrast', !highContrast); }}
                                         className={cn(
-                                            "w-full py-6 border-8 border-black rounded-3xl text-2xl font-black uppercase",
+                                            "w-full py-6 border-8 border-black rounded-xl text-2xl font-black uppercase",
                                             highContrast ? "bg-white text-black" : "bg-black text-white"
                                         )}
                                     >
@@ -479,7 +491,7 @@
                                     <button 
                                         onClick={() => { setDwellEnabled(!dwellEnabled); saveSetting('dwellEnabled', !dwellEnabled); }}
                                         className={cn(
-                                            "w-full py-6 border-8 border-black rounded-3xl text-2xl font-black uppercase",
+                                            "w-full py-6 border-8 border-black rounded-xl text-2xl font-black uppercase",
                                             dwellEnabled ? "bg-yellow-400 text-black" : "bg-gray-100"
                                         )}
                                     >
@@ -492,7 +504,7 @@
                                     <button 
                                         onClick={() => { setIsAssistiveMode(!isAssistiveMode); saveSetting('assistiveMode', !isAssistiveMode); }}
                                         className={cn(
-                                            "w-full py-6 border-8 border-black rounded-3xl text-2xl font-black uppercase",
+                                            "w-full py-6 border-8 border-black rounded-xl text-2xl font-black uppercase",
                                             isAssistiveMode ? "bg-blue-400 text-black" : "bg-gray-100"
                                         )}
                                     >
@@ -503,7 +515,7 @@
 
                             <button 
                                 onClick={() => setShowSettings(false)}
-                                className="mt-auto py-8 bg-green-500 border-8 border-black rounded-3xl text-3xl font-black uppercase neo-shadow"
+                                className="mt-auto py-8 bg-green-500 border-8 border-black rounded-xl text-3xl font-black uppercase neo-shadow"
                             >
                                 {t.done}
                             </button>
