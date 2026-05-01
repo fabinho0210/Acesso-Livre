@@ -827,14 +827,15 @@ export default function App() {
         )}
         style={themeMode === 'custom' ? { backgroundColor: customTheme.bg } : {}}
       >
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-12" role="list" aria-label="Lista de aplicativos disponíveis">
           {visibleAppIds.map((id) => (
             <motion.div 
               key={id} 
               id={id}
               onClick={() => handleAppAction(id)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { handleAppAction(id); } }}
-              role="button"
+              role="listitem"
+              aria-label={`Abrir ${PRESET_APPS[id]?.label}`}
               tabIndex={0}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95, x: 4, y: 4 }}
@@ -848,13 +849,14 @@ export default function App() {
                 ...(themeMode === 'custom' ? { borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent } : {})
               }}
             >
-              <div className="scale-110 mb-1">{PRESET_APPS[id]?.icon}</div>
-              <span className="font-black text-xl sm:text-2xl uppercase tracking-tighter">{PRESET_APPS[id]?.label}</span>
+              <div className="scale-110 mb-1" aria-hidden="true">{PRESET_APPS[id]?.icon}</div>
+              <span className="font-black text-xl sm:text-2xl uppercase tracking-tighter" aria-hidden="true">{PRESET_APPS[id]?.label}</span>
               
               {!lockEdit && (
                 <button 
                   id={`del-${id}`}
                   onClick={(e) => { e.stopPropagation(); removeApp(id); }}
+                  aria-label={`Remover ${PRESET_APPS[id]?.label}`}
                   className="absolute -top-4 -right-4 w-12 h-12 bg-red-600 text-white rounded-full border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center z-50 active:scale-90"
                 >
                   <X size={24} strokeWidth={5} />
@@ -867,10 +869,11 @@ export default function App() {
             <button 
               id="btn-add-app"
               onClick={() => { setShowAddAppModal(true); triggerHaptic([50]); }}
+              aria-label="Adicionar novo aplicativo"
               className="aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] border-dashed border-black/20 bg-black/5 active:scale-95 transition-all text-black/30 hover:text-black hover:border-black/50"
             >
-              <Plus size={52} strokeWidth={4} />
-              <span className="font-black text-xl uppercase tracking-widest">{t.add}</span>
+              <Plus size={52} strokeWidth={4} aria-hidden="true" />
+              <span className="font-black text-xl uppercase tracking-widest" aria-hidden="true">{t.add}</span>
             </button>
           )}
         </div>
@@ -889,6 +892,7 @@ export default function App() {
           <button 
             id="mic-btn" 
             onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
+            aria-label={isVoiceActive ? "Desativar assistente de voz" : "Ativar assistente de voz"}
             className={cn(
               "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden transition-all",
               isVoiceActive ? "bg-red-500 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent")
@@ -908,7 +912,7 @@ export default function App() {
                 />
               )}
             </AnimatePresence>
-            <Mic size={32} strokeWidth={4} className="relative z-10" />
+            <Mic size={32} strokeWidth={4} className="relative z-10" aria-hidden="true" />
           </button>
         </div>
 
@@ -918,10 +922,12 @@ export default function App() {
           onMouseMove={handleTrackpadMove}
           onTouchMove={handleTrackpadMove}
           onClick={handleClick}
+          role="region"
+          aria-label="Área de controle do cursor (trackpad)"
           className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors"
         >
           {trackpadEnabled && (
-            <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+            <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity" aria-hidden="true">
               <div className="w-1.5 h-1.5 rounded-full bg-current" />
               <div className="w-1.5 h-1.5 rounded-full bg-current" />
               <div className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -948,6 +954,7 @@ export default function App() {
               triggerHaptic([50]); 
               speak(newState ? t.flashlightOn : t.flashlightOff);
             }} 
+            aria-label={flashlightOn ? "Desligar lanterna" : "Ligar lanterna"}
             className={cn(
               "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
               flashlightOn ? "bg-yellow-400 border-black text-black" : (themeMode === 'default' ? "bg-gray-100 border-black text-black" : "bg-transparent")
@@ -958,7 +965,7 @@ export default function App() {
               color: (flashlightOn || themeMode === 'default') ? 'black' : (themeMode === 'custom' ? customTheme.fg : 'inherit')
             }}
           >
-            <Flashlight size={32} strokeWidth={3} />
+            <Flashlight size={32} strokeWidth={3} aria-hidden="true" />
           </button>
         </div>
       </footer>
