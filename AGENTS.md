@@ -6,7 +6,8 @@ This document outlines the core principles, design system, and functional logic 
 The launcher is designed for users with severe motor impairments (Disarthria, Cerebral Palsy, Reduced Mobility) and visual/hearing needs. It bridges the gap between the user and the smartphone through a virtual mouse (trackpad), voice synthesis, and dwell-clicking.
 
 ## 2. Accessibility Guidelines (WCAG + Custom)
-- **High Contrast Mode:** Expanded to Multiple Presets (Classic, Inverted, Night, Solar) via `themeMode`. All elements use 4px black or theme-colored borders.
+- **High Contrast Mode:** Expanded to Multiple Presets (Classic, Inverted, Night, Solar) via `themeMode`. All elements use 4px black or theme-colored borders. Global contrast logic ensures icons and text are readable on all presets.
+- **Multilingual Support:** Full interface and voice synthesis support for Portuguese (pt-BR), English (en-US), and Spanish (es-ES).
 - **Custom Personalization:** User can override background, element, and accent colors via `customTheme`.
 - **Font Scale:** Support for dynamic font sizing (default 22px, ranges up to 48px).
 - **Touch Targets:** Minimum 44x44px. Buttons are large (square grid layout, aspect-square).
@@ -23,10 +24,10 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
   - Secondary: Green (WhatsApp/Success), Blue (System), Red (Emergency/Stop).
   - Neutrals: Zinc-100/900 for utility buttons.
 - **Architecture:**
-  - Header (80px): Logo, Settings, Accessibility trigger.
+  - Header (120px): Large Digital Clock and Date (Center), Accessibility/Language trigger (Left), Settings (Right).
   - Main Grid: Scrollable area for dynamic app cards.
-  - Nav Bar (Bottom Area): Grid layout containing Microphone, Central Info Area (Clock/Trackpad), and Flashlight.
-  - Trackpad Area (32dvh): Proportional control area for the virtual cursor. Displays real-time Digital Clock when trackpad is enabled.
+  - Nav Bar (Bottom Area): Grid layout containing Microphone (Left), Clean Trackpad Area (Center), and Flashlight (Right).
+  - Trackpad Area (32dvh): Proportional control area for the virtual cursor. Displays a minimalist indicator when trackpad is enabled.
 
 ## 4. Functional Logic (Critical)
 
@@ -34,7 +35,7 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - **Resolution Independence:** Cursor position is stored as percentages (0-100% for X/Y).
 - **Mapping:** `document.elementFromPoint(xPx, yPx)` translates percentages to screen coordinates, adjusted for the scrollable main area.
 - **Toggle:** Trackpad can be disabled in Settings to allow standard touch interaction.
-- **Visual Info:** When enabled, the trackpad area displays a large Neo-Brutalist digital clock (HH:MM) and the current date.
+- **Visual Info:** The trackpad area is kept clean to focus on movement, with the main time/date display moved to the Header for better visibility.
 
 ### Dynamic Card Management
 - **Persistence:** Selected apps are stored in `localStorage` under `launcher_visibleApps`.
@@ -49,10 +50,19 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - **Visuals:** SVG circular progress bar (32px) centered on the trackpad.
 - **Logic:** Resets if the cursor moves to a different element ID.
 
-### Voice Engine & Utility
-- **Synthesis:** Custom `speak()` function using `window.speechSynthesis` (pt-BR).
+### Voice Engine & Commands
+- **Synthesis:** Custom `speak()` function using `window.speechSynthesis` with multi-language support.
+- **Recognition:** Integrated `SpeechRecognition` when the assistant is active.
+- **Commands:** 
+  - *Navigation:* "Subir/Up/Arriba", "Descer/Down/Bajar" (control scroll).
+  - *UI Adjustments:* "Aumentar/Zoom in/Más", "Diminuir/Zoom out/Menos" (control font size).
+  - *App Control:* "Abrir [Nome do App]" launches the corresponding intent.
+  - *Safety:* "Ajuda/Socorro/Help" triggers emergency actions.
+  - *System (Offline):* "Lanterna/Flashlight", "Horas/Time", "Bateria/Battery".
 - **Toggle:** Voice feedback can be completely muted via the Accessibility menu (Vision category).
+- **Offline Support:** Basic commands work without internet if the OS (Android/iOS) has downloaded the local language pack for speech recognition.
 - **Flashlight:** A dedicated button in the bottom bar toggles the device flashlight (simulated via a visual overlay).
+- **Assistance Feedback:** When voice commands are active, a pulsating animation (scale and glow) is applied to the microphone icon, and a "Listening" indicator with frequency-bars is displayed on the trackpad area.
 
 ### Android Intents
 - **General Launcher:** `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`.
@@ -71,6 +81,8 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - `launcher_voiceEnabled`: Boolean.
 - `launcher_fontSize`: Integer.
 - `launcher_confirmCall`: Boolean.
+- `launcher_language`: String ('pt-BR', 'en-US', 'es-ES').
+- `launcher_themeMode`: String (preset names or 'custom').
 
 ## 6. Implementation Checklist
 - [x] Implement the cursor on z-index 1000+.

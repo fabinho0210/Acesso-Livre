@@ -547,6 +547,111 @@ export default function App() {
     }
   ];
 
+  // --- Voice Commands Logic ---
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.warn("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = true;
+    recognitionRef.current.interimResults = false;
+    recognitionRef.current.lang = language;
+
+    recognitionRef.current.onresult = (event: any) => {
+      const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+      handleVoiceCommand(transcript);
+    };
+
+    recognitionRef.current.onend = () => {
+      if (isVoiceActive) {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          console.log("Recognition restart suppressed:", e);
+        }
+      }
+    };
+
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, [language]);
+
+  useEffect(() => {
+    if (isVoiceActive) {
+      try {
+        recognitionRef.current?.start();
+      } catch (e) {
+        console.error("Speech recognition error:", e);
+      }
+    } else {
+      recognitionRef.current?.stop();
+    }
+  }, [isVoiceActive]);
+
+  const handleVoiceCommand = (cmd: string) => {
+    console.log("Command received:", cmd);
+    
+    // Normalize command strings for different languages
+    const tokens = cmd.split(' ');
+    
+    // Scroll Commands
+    if (cmd.includes('descer') || cmd.includes('down') || cmd.includes('bajar')) {
+      const el = document.getElementById('main-scroll-area');
+      if (el) el.scrollBy({ top: 300, behavior: 'smooth' });
+      speak(language === 'pt-BR' ? 'Descendo' : (language === 'es-ES' ? 'Bajando' : 'Scrolling down'));
+    }
+    else if (cmd.includes('subir') || cmd.includes('up') || cmd.includes('arriba')) {
+      const el = document.getElementById('main-scroll-area');
+      if (el) el.scrollBy({ top: -300, behavior: 'smooth' });
+      speak(language === 'pt-BR' ? 'Subindo' : (language === 'es-ES' ? 'Subiendo' : 'Scrolling up'));
+    }
+    // Zoom Commands
+    else if (cmd.includes('aumentar') || cmd.includes('zoom in') || cmd.includes('más')) {
+      setFontSize(s => Math.min(48, s + 4));
+      speak(language === 'pt-BR' ? 'Aumentando' : (language === 'es-ES' ? 'Aumentando' : 'Zooming in'));
+    }
+    else if (cmd.includes('diminuir') || cmd.includes('zoom out') || cmd.includes('menos')) {
+      setFontSize(s => Math.max(16, s - 4));
+      speak(language === 'pt-BR' ? 'Diminuindo' : (language === 'es-ES' ? 'Disminuyendo' : 'Zooming out'));
+    }
+    // App Launchers
+    else if (cmd.includes('abrir') || cmd.includes('open')) {
+      const appName = tokens[tokens.length - 1];
+      const app = allApps.find(a => a.label.toLowerCase().includes(appName));
+      if (app) app.action();
+      else speak(language === 'pt-BR' ? `Aplicativo ${appName} não encontrado` : `App ${appName} not found`);
+    }
+    // Emergency
+    else if (cmd.includes('ajuda') || cmd.includes('help') || cmd.includes('socorro') || cmd.includes('auxilio')) {
+      handleAppAction('emergency');
+    }
+    // Offline / System Commands
+    else if (cmd.includes('lanterna') || cmd.includes('flashlight') || cmd.includes('luz')) {
+      const newState = !flashlightOn;
+      setFlashlightOn(newState);
+      speak(newState ? t.flashlightOn : t.flashlightOff);
+    }
+    else if (cmd.includes('horas') || cmd.includes('time') || cmd.includes('reloj')) {
+      const timeStr = currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
+      speak((language === 'pt-BR' ? 'Agora são ' : (language === 'es-ES' ? 'Son las ' : 'It is ')) + timeStr);
+    }
+    else if (cmd.includes('bateria') || cmd.includes('battery') || cmd.includes('carga')) {
+      if ('getBattery' in navigator) {
+        (navigator as any).getBattery().then((battery: any) => {
+          const level = Math.floor(battery.level * 100);
+          const msg = (language === 'pt-BR' ? 'Nível de bateria em ' : (language === 'es-ES' ? 'Nivel de batería al ' : 'Battery level at ')) + level + '%';
+          speak(msg);
+        });
+      }
+    }
+  };
+
   const handleClick = useCallback(() => {
     setIsClicking(true);
     triggerHaptic([60]);
@@ -825,14 +930,30 @@ export default function App() {
           <button 
             id="mic-btn" 
             onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
-            className={cn("w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", isVoiceActive ? "bg-red-400 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent"))}
+            className={cn("w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all relative overflow-hidden", isVoiceActive ? "bg-red-400 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent"))}
             style={{
               boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
               borderColor: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'black' : 'currentColor'),
               color: isVoiceActive ? 'white' : (themeMode === 'custom' ? customTheme.fg : undefined)
             }}
           >
-            {isVoiceActive ? <Mic size={44} /> : <MicOff size={44} />}
+            <AnimatePresence>
+              {isVoiceActive && (
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 bg-white/30 rounded-full"
+                />
+              )}
+            </AnimatePresence>
+            <motion.div
+              animate={isVoiceActive ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="z-10"
+            >
+              {isVoiceActive ? <Mic size={44} /> : <MicOff size={44} />}
+            </motion.div>
           </button>
         </div>
         <div 
@@ -846,6 +967,35 @@ export default function App() {
           onTouchMove={trackpadEnabled ? handleTrackpadMove : undefined} 
           onClick={trackpadEnabled ? handleClick : undefined}
         >
+          {/* Assistente Listening Indicator */}
+          <AnimatePresence>
+            {isVoiceActive && (
+              <motion.div 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 20, opacity: 0 }}
+                className="absolute top-4 left-0 right-0 flex flex-col items-center gap-2 z-20 pointer-events-none"
+              >
+                <div className="flex items-center gap-1.5 px-4 py-2 bg-black/80 rounded-full border-2 border-white/20 backdrop-blur-sm">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="font-black text-[10px] uppercase text-white tracking-widest">
+                    {t.assistantOn} {!navigator.onLine && (language === 'pt-BR' ? ' (OFFLINE)' : ' (OFFLINE)')}
+                  </span>
+                  <div className="flex items-end gap-0.5 h-3 ml-2">
+                    {[1, 2, 3, 4, 3, 2, 1].map((h, i) => (
+                      <motion.div 
+                        key={i}
+                        animate={{ height: [`${h*20}%`, `${h*80}%`, `${h*20}%`] }}
+                        transition={{ duration: 0.5 + i*0.1, repeat: Infinity, ease: "easeInOut" }}
+                        className="w-0.5 bg-red-400 rounded-full"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {trackpadEnabled ? (
             <div className="flex flex-col items-center justify-center pointer-events-none gap-2">
               {/* Espaço limpo para o trackpad (removido relógio) */}
