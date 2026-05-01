@@ -91,6 +91,7 @@ export default function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
+  const [showAddAppModal, setShowAddAppModal] = useState(false);
 
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const dwellProgressRef = useRef(0);
@@ -136,46 +137,75 @@ export default function App() {
     }
   };
 
-  const abrirApp = (app: ExternalApp) => {
-    triggerHaptic([50]);
-    speak(`Abrindo ${app.name}`);
-    window.location.href = `intent://#Intent;package=${app.packageName};scheme=https;end`;
-    
-    setTimeout(() => {
-        if (app.id === 'youtube') window.open('https://youtube.com', '_blank');
-        if (app.id === 'facebook') window.open('https://facebook.com', '_blank');
-    }, 1000);
+  // --- App Presets & Management ---
+  const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link', value: string }> = {
+    'phone': { label: 'TELEFONE', color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'intent', value: 'tel:' },
+    'whatsapp': { label: 'WHATSAPP', color: 'bg-[#059669]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'intent://send#Intent;package=com.whatsapp;scheme=whatsapp;end' },
+    'camera': { label: 'CÂMERA', color: 'bg-zinc-400', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
+    'browser': { label: 'INTERNET', color: 'bg-blue-500', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
+    'emergency': { label: 'EMERGÊNCIA', color: 'bg-[#ef4444]', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'intent', value: 'tel:192' },
+    'family': { label: 'FAMÍLIA', color: 'bg-[#a855f7]', icon: <Home size={52} strokeWidth={3} />, type: 'link', value: '#' },
+    'youtube': { label: 'YOUTUBE', color: 'bg-red-500', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
+    'facebook': { label: 'FACEBOOK', color: 'bg-blue-600', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
+    'instagram': { label: 'INSTAGRAM', color: 'bg-pink-500', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
+    'calc': { label: 'CALCULADORA', color: 'bg-zinc-600', icon: <Calculator size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.calculator2' },
+    'gallery': { label: 'GALERIA', color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'intent:android.intent.action.VIEW;type=image/*;end' },
+    'email': { label: 'E-MAIL', color: 'bg-white', icon: <Mail size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.gm' },
+    'maps': { label: 'MAPS', color: 'bg-green-500', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
   };
 
-  const externalApps: ExternalApp[] = [
-    { id: 'youtube', name: 'YouTube', icon: <Youtube size={56} />, packageName: 'com.google.android.youtube', color: 'bg-red-500' },
-    { id: 'facebook', name: 'Facebook', icon: <Facebook size={56} />, packageName: 'com.facebook.katana', color: 'bg-blue-600' },
-    { id: 'calc', name: 'Calculadora', icon: <Calculator size={56} />, packageName: 'com.android.calculator2', color: 'bg-zinc-600' },
-    { id: 'cal', name: 'Calendário', icon: <Calendar size={56} />, packageName: 'com.google.android.calendar', color: 'bg-blue-400' },
-    { id: 'email', name: 'E-mail', icon: <Mail size={56} />, packageName: 'com.google.android.gm', color: 'bg-white' },
-  ];
+  const [visibleAppIds, setVisibleAppIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('launcher_visibleApps');
+    return saved ? JSON.parse(saved) : ['phone', 'whatsapp', 'camera', 'browser', 'emergency', 'family'];
+  });
+
+  const addApp = (id: string) => {
+    if (!visibleAppIds.includes(id)) {
+      const newIds = [...visibleAppIds, id];
+      setVisibleAppIds(newIds);
+      localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
+      triggerHaptic([50]);
+      speak(`Adicionado ${PRESET_APPS[id].label}`);
+    }
+    setShowAddAppModal(false);
+  };
+
+  const removeApp = (id: string) => {
+    const newIds = visibleAppIds.filter(appId => appId !== id);
+    setVisibleAppIds(newIds);
+    localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
+    triggerHaptic([100]);
+    speak(`Removido com sucesso`);
+  };
+
+  const handleAppAction = (id: string) => {
+    const app = PRESET_APPS[id];
+    if (!app) return;
+
+    triggerHaptic([50]);
+    speak(`Abrindo ${app.label}`);
+
+    if (app.type === 'link') {
+      window.location.href = app.value;
+    } else {
+      if (app.value.startsWith('tel:')) {
+        if (confirmCall) speak("Confirme se deseja ligar.");
+        window.location.href = app.value;
+      } else {
+        window.location.href = `intent://#Intent;package=${app.value};scheme=https;end`;
+      }
+    }
+  };
 
   const allApps: AppData[] = [
-    { 
-      id: 'app-phone', label: 'TELEFONE', color: 'bg-[#22c55e]', 
-      icon: <Phone size={52} strokeWidth={3} />,
-      action: () => { if (confirmCall) { speak("Confirme se deseja ligar."); } window.location.href = 'tel:'; }
-    },
-    { 
-      id: 'app-whatsapp', label: 'WHATSAPP', color: 'bg-[#059669]', 
-      icon: <MessageSquare size={52} strokeWidth={3} />,
-      action: () => { window.location.href = 'https://wa.me/'; speak("Abrindo WhatsApp"); }
-    },
-    { 
-      id: 'app-emergency', label: 'EMERGÊNCIA', color: 'bg-[#ef4444]', 
-      icon: <AlertCircle size={52} strokeWidth={3} />,
-      action: () => { window.location.href = 'tel:192'; speak("LIGANDO PARA EMERGÊNCIA"); }
-    },
-    { 
-      id: 'app-family', label: 'FAMÍLIA', color: 'bg-[#a855f7]', 
-      icon: <Home size={52} strokeWidth={3} />,
-      action: () => { speak("Contatos da família ativados."); }
-    },
+    ...visibleAppIds.map(id => ({
+      id,
+      label: PRESET_APPS[id].label,
+      color: PRESET_APPS[id].color,
+      icon: PRESET_APPS[id].icon,
+      action: () => handleAppAction(id)
+    })),
+    // Fixed "Todos os Apps" button
     { 
       id: 'app-all', label: 'TODOS OS APPS', color: 'bg-zinc-100', 
       icon: <LayoutGrid size={52} strokeWidth={3} />,
@@ -184,32 +214,7 @@ export default function App() {
         speak("Abrindo todos os aplicativos");
         window.location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
       }
-    },
-    { 
-      id: 'app-youtube', label: 'YOUTUBE', color: 'bg-red-500', 
-      icon: <Youtube size={52} strokeWidth={3} />,
-      action: () => abrirApp(externalApps[0])
-    },
-    { 
-      id: 'app-facebook', label: 'FACEBOOK', color: 'bg-blue-600', 
-      icon: <Facebook size={52} strokeWidth={3} />,
-      action: () => abrirApp(externalApps[1])
-    },
-    { 
-      id: 'app-calc', label: 'CALCULADORA', color: 'bg-zinc-600', 
-      icon: <Calculator size={52} strokeWidth={3} />,
-      action: () => abrirApp(externalApps[2])
-    },
-    { 
-      id: 'app-cal', label: 'CALENDÁRIO', color: 'bg-blue-400', 
-      icon: <Calendar size={52} strokeWidth={3} />,
-      action: () => abrirApp(externalApps[3])
-    },
-    { 
-      id: 'app-email', label: 'E-MAIL', color: 'bg-white', 
-      icon: <Mail size={52} strokeWidth={3} />,
-      action: () => abrirApp(externalApps[4])
-    },
+    }
   ];
 
   const handleClick = useCallback(() => {
@@ -351,12 +356,15 @@ export default function App() {
           className="grid grid-cols-2 gap-4 sm:gap-6 w-full max-w-lg mx-auto pb-12"
         >
           {allApps.map(app => (
-            <button
+            <div
               key={app.id}
               id={app.id}
               onClick={app.action}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') app.action(); }}
               className={cn(
-                "relative flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all",
+                "relative flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer select-none",
                 highContrastMode ? "bg-black text-white border-white shadow-white/50" : app.color,
                 isDarkMode ? "border-white shadow-white/10" : "border-black",
                 hoveredId === app.id ? "scale-[1.05] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]" : "scale-100"
@@ -364,13 +372,32 @@ export default function App() {
             >
               <div className={cn(highContrastMode ? "text-white" : "text-black")}>{app.icon}</div>
               <span className={cn("font-black text-sm sm:text-lg uppercase px-2 text-center", highContrastMode ? "text-white" : "text-black")}>{app.label}</span>
-              {!lockEdit && (
-                <div className="absolute top-4 right-4 w-8 h-8 sm:w-10 sm:h-10 bg-[#ef4444] rounded-full border-[3px] border-black flex items-center justify-center shadow-sm">
-                  <X size={20} strokeWidth={4} className="text-white" />
-                </div>
+              {!lockEdit && app.id !== 'app-all' && (
+                <button 
+                  id={`del-${app.id}`}
+                  onClick={(e) => { e.stopPropagation(); removeApp(app.id); }}
+                  className="absolute -top-4 -right-4 w-12 h-12 bg-red-500 rounded-full border-[4px] border-black flex items-center justify-center shadow-lg active:translate-y-1 transition-all z-20"
+                >
+                  <X size={24} strokeWidth={4} className="text-white" />
+                </button>
               )}
-            </button>
+            </div>
           ))}
+          
+          {!lockEdit && (
+            <button
+              id="add-app-btn"
+              onClick={() => setShowAddAppModal(true)}
+              className={cn(
+                "flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] border-dashed shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all",
+                isDarkMode || highContrastMode ? "border-white/40 text-white/40" : "border-black/40 text-black/40",
+                hoveredId === 'add-app-btn' ? "scale-[1.05] border-solid" : "scale-100"
+              )}
+            >
+              <Plus size={64} strokeWidth={3} />
+              <span className="font-black text-sm uppercase">Adicionar</span>
+            </button>
+          )}
         </motion.div>
       </main>
 
@@ -510,7 +537,16 @@ export default function App() {
                       <Maximize2 size={32} />
                       <span className="font-black uppercase text-[10px]">{trackpadEnabled ? "Trackpad On" : "Trackpad Off"}</span>
                     </button>
-                    <button onClick={() => setLockEdit(!lockEdit)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", lockEdit ? "bg-red-400 text-black shadow-none" : "bg-orange-300 text-black")}><Lock size={32} /><span className="font-black uppercase text-[10px]">{lockEdit ? "Edição Travada" : "Travar Edição"}</span></button>
+                    <button onClick={() => {
+                      const newState = !lockEdit;
+                      setLockEdit(newState);
+                      localStorage.setItem('launcher_lockEdit', String(newState));
+                      triggerHaptic([50]);
+                      speak(newState ? "Edição bloqueada" : "Edição liberada");
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", lockEdit ? "bg-red-400 text-white shadow-none" : "bg-zinc-100 text-black")}>
+                      {lockEdit ? <Lock size={32} /> : <Unlock size={32} />}
+                      <span className="font-black uppercase text-[10px]">{lockEdit ? "CONFIGURAÇÃO OFF" : "CONFIGURAÇÃO ON"}</span>
+                    </button>
                     <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", confirmCall ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">Confirmar Ligação</span></button>
                     <button onClick={() => {
                       const newState = !dwellEnabled;
@@ -544,22 +580,32 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* App List Modal */}
+      {/* Add App Modal */}
       <AnimatePresence>
-        {showAppList && (
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed inset-0 bg-white z-[2500] flex flex-col overflow-hidden">
-            <div className="h-24 bg-blue-500 border-b-8 border-black flex items-center justify-between px-8">
-              <h2 className="font-black text-3xl uppercase italic text-white">Seus Aplicativos</h2>
-              <button onClick={() => setShowAppList(false)} className="bg-white p-3 rounded-2xl border-4 border-black"><X size={32}/></button>
-            </div>
-            <div className="flex-1 p-8 grid grid-cols-1 gap-6 overflow-y-auto bg-gray-100 pb-24">
-              {externalApps.map(app => (
-                <button key={app.id} onClick={() => abrirApp(app)} className={cn("w-full h-32 rounded-[32px] border-[6px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center px-8 gap-8 transition-all active:translate-x-1 active:shadow-none flex-shrink-0", app.color, app.id === 'email' ? 'text-black' : 'text-white')}>
-                  <div className="p-3 bg-white/20 rounded-2xl">{app.icon}</div>
-                  <span className="font-black text-3xl uppercase tracking-tighter">{app.name}</span>
-                </button>
-              ))}
-            </div>
+        {showAddAppModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className={cn("w-full max-w-lg rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden", isDarkMode || highContrastMode ? "bg-zinc-800 border-white" : "bg-white border-black")}>
+              <div className="bg-blue-400 p-6 border-b-[6px] border-black flex items-center justify-between text-black">
+                <h2 className="font-black text-2xl uppercase italic">Adicionar Aplicativo</h2>
+                <button onClick={() => setShowAddAppModal(false)} className="bg-white p-2 rounded-xl border-4 border-black"><X size={24}/></button>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto bg-gray-50">
+                {Object.entries(PRESET_APPS).filter(([id]) => !visibleAppIds.includes(id)).map(([id, app]) => (
+                  <button 
+                    key={id} 
+                    id={`add-${id}`}
+                    onClick={() => addApp(id)} 
+                    className={cn("p-4 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 active:translate-y-1 active:shadow-none transition-all", app.color)}
+                  >
+                    <div className="text-black scale-90">{app.icon}</div>
+                    <span className="font-black text-[10px] uppercase text-black">{app.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="p-6 bg-white border-t-4 border-black">
+                <button onClick={() => setShowAddAppModal(false)} className="w-full h-16 bg-red-500 text-white rounded-2xl border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Cancelar</button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

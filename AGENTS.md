@@ -3,56 +3,70 @@
 This document outlines the core principles, design system, and functional logic for the "Acesso Livre" Accessibility Launcher. Use these instructions to maintain consistency across different versions or platforms.
 
 ## 1. Core Mission
-The launcher is designed for users with severe motor impairments (Disarthria, Cerebral Palsy, Reduced Mobility) who cannot use standard touch interfaces. It bridges the gap between the user and the smartphone through a virtual mouse, voice commands, and dwell-clicking.
+The launcher is designed for users with severe motor impairments (Disarthria, Cerebral Palsy, Reduced Mobility) and visual/hearing needs. It bridges the gap between the user and the smartphone through a virtual mouse (trackpad), voice synthesis, and dwell-clicking.
 
 ## 2. Accessibility Guidelines (WCAG + Custom)
 - **High Contrast Mode:** Forced black/white/yellow palette with 4px black borders on every interactive element.
-- **Font Scale:** Support for `small` (text-sm), `medium` (text-base), and `large` (text-xl) global scales.
-- **Touch Targets:** Minimum 44x44px. In the launcher, buttons are large (at least 160px height on mobile).
+- **Font Scale:** Support for dynamic font sizing (default 22px, ranges up to 48px).
+- **Touch Targets:** Minimum 44x44px. Buttons are large (square grid layout, aspect-square).
 - **Dwell Clicking:** Automatic activation when a cursor hovers over an element for 1.5s.
 - **Visual Feedback:** 
-  - Hover states: Scale up (1.05x) and shadow intensity.
-  - Active states: Translation (4px down/right) to simulate a physical button press.
+  - Hover states: Scale up (1.05x) and enhanced shadows.
+  - Active states: Translation (4px down/right) to simulate physical button press.
+- **Reading Line:** A horizontal guide that follows the cursor to assist in tracking text.
 
-## 3. Design System (The "Neo-Accessibility" Look)
+## 3. Design System (Neo-Brutalism)
+- **Style:** Thick black borders (4px), solid black shadows (`shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]`), and vibrant solid colors.
 - **Theme Colors:** 
-  - Yellow: `#facc15` (Primary/High Contrast)
-  - Blue: `bg-blue-400`
-  - Green: `bg-green-400`
-  - Purple: `bg-purple-500`
+  - Primary: `#facc15` (Yellow)
+  - Secondary: Green (WhatsApp/Success), Blue (System), Red (Emergency/Stop).
+  - Neutrals: Zinc-100/900 for utility buttons.
 - **Architecture:**
-  - Header: 80px (mobile) to 96px (desktop).
-  - Main Grid: Reactive columns (2 cols on small mobile, up to 5 on wide screens).
-  - Trackpad Area: Takes 60% of the screen height in Assistive Mode.
-- **Typography:**
-  - Font: Inter (Sans-serif).
-  - Weights: Black (900) for titles, Bold (700) for actions.
+  - Header (80px): Logo, Settings, Accessibility trigger.
+  - Main Grid: Scrollable area for dynamic app cards.
+  - Nav Bar (96px): Back, Help, Home, Menu.
+  - Trackpad Area (32dvh): Proportional control area for the virtual cursor.
 
 ## 4. Functional Logic (Critical)
-### Assistive Cursor Strategy
-- **Duality:** The cursor position is stored in percentages (`0-100` for X/Y) to be resolution-independent.
-- **Mapping:** To detect elements under the cursor, use `document.elementFromPoint(xPx, yPx)` after converting percentages to pixels, accounting for the header offset.
-- **Trackpad:** Captures `touchMove` or mouse-drag and calculates proportional movement relative to the trackpad's container size.
+
+### Assistive Cursor & Trackpad
+- **Resolution Independence:** Cursor position is stored as percentages (0-100% for X/Y).
+- **Mapping:** `document.elementFromPoint(xPx, yPx)` translates percentages to screen coordinates, adjusted for the scrollable main area.
+- **Toggle:** Trackpad can be disabled in Settings to allow standard touch interaction.
+
+### Dynamic Card Management
+- **Persistence:** Selected apps are stored in `localStorage` under `launcher_visibleApps`.
+- **PRESET_APPS:** A registry maps ID to labels, colors, and actions (Intents or Links).
+- **Security Logic:** Cards can only be added or removed when "Modo Editar" (`lockEdit = false`) is active. This prevents accidental deletions by the user.
+- **Delete Action:** Rendered as a separate button (`id="del-{id}"`) attached to the card, visible only in edit mode.
 
 ### Dwell Click Implementation
-- **Timing:** 1.5 seconds.
-- **Visuals:** A 64px circular SVG stroke that fills up as time passes.
-- **Reset:** If the cursor moves to a new element ID or back to the trackpad, the timer MUST reset immediately.
+- **Timing:** 1.5 seconds (20 steps of 75ms).
+- **Visuals:** SVG circular progress bar (32px) centered on the trackpad.
+- **Logic:** Resets if the cursor moves to a different element ID.
 
-### Voice Engine (Internationalized)
-- Support for `pt-BR`, `en-US`, and `es-ES`.
-- Commands must be fuzzy-matched (e.g., "cima" or "top" should both move the cursor up).
-- **Zoom Controls:** "Aumentar Zoom / Zoom In", "Diminuir Zoom / Zoom Out".
-- **View Reset:** "Resetar / Reset / Centralizar" (sets zoom to 1x and resets pan).
+### Voice Engine
+- **Synthesis:** Custom `speak()` function using `window.speechSynthesis` (pt-BR).
+- **Toggle:** Voice feedback can be completely muted via the Accessibility menu.
+- **Persistence:** `launcher_voiceEnabled` in `localStorage`.
 
-## 5. Mobile & PWA Optimization
-- **Full Viewport:** Use `100dvh` to handle mobile address bars correctly.
-- **Safe Areas:** Apply `padding-top: env(safe-area-inset-top)` and `padding-bottom: env(safe-area-inset-bottom)`.
-- **Manifest:** Standalone display mode with `mouse` icon as the launcher identifier.
+### Android Intents
+- **General Launcher:** `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`.
+- **Specific Apps:** `intent://#Intent;package={packageName};scheme=https;end`.
 
-## 6. Implementation Checklist for New Projects
-- [ ] Initialize `localStorage` for `dwellEnabled`, `highContrast`, and `lang`.
-- [ ] Implement `triggerHaptic(HAPTIC_PATTERNS.SUCCESS)` on every successful click.
-- [ ] Ensure the cursor is rendered on a high z-index (300+) above all UI but below settings modals.
-- [ ] All buttons must have an `id` that matches the cursor detection logic.
-- [ ] Disable standard touch/scroll when Assistive Mode is active to prevent unintentional swipes.
+## 5. Persistence Map (LocalStorage)
+- `launcher_visibleApps`: JSON array of app IDs.
+- `launcher_lockEdit`: Boolean (Safety Lock).
+- `launcher_dwellEnabled`: Boolean.
+- `launcher_highContrast`: Boolean.
+- `launcher_darkMode`: Boolean.
+- `launcher_trackpadEnabled`: Boolean.
+- `launcher_voiceEnabled`: Boolean.
+- `launcher_fontSize`: Integer.
+- `launcher_confirmCall`: Boolean.
+
+## 6. Implementation Checklist
+- [x] Implement the cursor on z-index 1000+.
+- [x] All interactive elements must have a unique `id`.
+- [x] Use `AnimatePresence` for modal transitions.
+- [x] Trigger haptic feedback on state changes and successful clicks.
