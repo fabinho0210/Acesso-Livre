@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { 
   Home, 
@@ -64,6 +64,36 @@ interface ExternalApp {
   packageName: string;
   color: string;
 }
+
+// --- Digital Clock Sub-component for performance ---
+const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: string, themeMode: string, THEMES: any, customTheme: any }) => {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className={cn(
+      "flex-1 flex flex-col items-center justify-center text-center border-[4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0 transition-colors",
+      themeMode === 'custom' ? "bg-white border-black text-black" : (THEMES[themeMode]?.uiBg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text)
+    )} onClick={() => {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }}
+    style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent} : (themeMode !== 'default' ? {boxShadow: `6px 6px 0px 0px ${THEMES[themeMode]?.shadow}`} : {})}
+    >
+      <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none truncate w-full">
+        {time.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
+      </span>
+      <span className="font-black text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] opacity-80 truncate w-full">
+        {time.toLocaleDateString(language, { weekday: 'short', day: '2-digit', month: 'short' })}
+      </span>
+    </div>
+  );
+};
 
 export default function App() {
   const VERSION = "1.1.0";
@@ -484,8 +514,8 @@ export default function App() {
   const [showMedicalInfo, setShowMedicalInfo] = useState(false);
   const [locationText, setLocationText] = useState("");
 
-  // --- Core States ---
-  const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
+  // --- Core States & Refs ---
+  const cursorPosRef = useRef({ x: 50, y: 50 });
   const [isClicking, setIsClicking] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [dwellEnabled, setDwellEnabled] = useState(true);
@@ -493,7 +523,6 @@ export default function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
   const [showAddAppModal, setShowAddAppModal] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [flashlightOn, setFlashlightOn] = useState(false);
   const videoTrackRef = useRef<MediaStreamTrack | null>(null);
 
@@ -591,7 +620,7 @@ export default function App() {
   };
 
   // --- App Presets & Management ---
-  const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link' | 'tel', value: string }> = {
+  const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link' | 'tel', value: string }> = useMemo(() => ({
     'phone': { label: t.phone, color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'tel', value: 'tel:' },
     'whatsapp': { label: t.whatsapp, color: 'bg-[#10b981]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'whatsapp://send' },
     'camera': { label: t.camera, color: 'bg-blue-400', icon: <Camera size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
@@ -603,14 +632,14 @@ export default function App() {
     'instagram': { label: t.instagram, color: 'bg-pink-500', icon: <Instagram size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
     'gallery': { label: t.gallery, color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.gallery3d' },
     'maps': { label: t.maps, color: 'bg-green-500', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
-  };
+  }), [t]);
 
   const [visibleAppIds, setVisibleAppIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('launcher_visibleApps');
     return saved ? JSON.parse(saved) : ['phone', 'whatsapp', 'camera', 'gallery', 'emergency', 'family'];
   });
 
-  const addApp = (id: string) => {
+  const addApp = useCallback((id: string) => {
     if (!visibleAppIds.includes(id)) {
       const newIds = [...visibleAppIds, id];
       setVisibleAppIds(newIds);
@@ -619,17 +648,17 @@ export default function App() {
       speak(`${t.added} ${PRESET_APPS[id].label}`);
     }
     setShowAddAppModal(false);
-  };
+  }, [visibleAppIds, t, PRESET_APPS, speak, triggerHaptic]);
 
-  const removeApp = (id: string) => {
+  const removeApp = useCallback((id: string) => {
     const newIds = visibleAppIds.filter(appId => appId !== id);
     setVisibleAppIds(newIds);
     localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
     triggerHaptic([100]);
     speak(t.removed);
-  };
+  }, [visibleAppIds, t, speak, triggerHaptic]);
 
-  const handleAppAction = (id: string) => {
+  const handleAppAction = useCallback((id: string) => {
     const app = PRESET_APPS[id];
     if (!app) return;
 
@@ -649,9 +678,9 @@ export default function App() {
         window.location.href = `intent://#Intent;package=${app.value};scheme=https;end`;
       }
     }
-  };
+  }, [PRESET_APPS, speak, triggerHaptic, t]);
 
-  const allApps: AppData[] = [
+  const allApps: AppData[] = useMemo(() => [
     ...visibleAppIds.map(id => ({
       id,
       label: PRESET_APPS[id].label,
@@ -669,7 +698,7 @@ export default function App() {
         window.location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
       }
     }
-  ];
+  ], [visibleAppIds, PRESET_APPS, handleAppAction, t, triggerHaptic, speak]);
 
   // --- Voice Commands Logic ---
   const recognitionRef = useRef<any>(null);
@@ -768,7 +797,7 @@ export default function App() {
       toggleFlashlight();
     }
     else if (cmd.includes('horas') || cmd.includes('time') || cmd.includes('reloj')) {
-      const timeStr = currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
+      const timeStr = new Date().toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
       speak((language === 'pt-BR' ? 'Agora são ' : (language === 'es-ES' ? 'Son las ' : 'It is ')) + timeStr);
     }
     else if (cmd.includes('bateria') || cmd.includes('battery') || cmd.includes('carga')) {
@@ -787,15 +816,16 @@ export default function App() {
     triggerHaptic([60]);
     setTimeout(() => setIsClicking(false), 200);
 
-    const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const yPx = (cursorPos.y / 100) * window.innerHeight;
+    const { x, y } = cursorPosRef.current;
+    const xPx = (x / 100) * window.innerWidth;
+    const yPx = (y / 100) * window.innerHeight;
     const el = document.elementFromPoint(xPx, yPx);
     
     if (el) {
       const target = el.closest('button') || el.closest('a') || el.closest('[role="button"]') || el.closest('[role="listitem"]');
       if (target) (target as HTMLElement).click();
     }
-  }, [cursorPos, vibrateOnTouch]);
+  }, [triggerHaptic]);
 
   const trackpadRef = useRef<HTMLDivElement>(null);
 
@@ -803,19 +833,16 @@ export default function App() {
     if (!trackpadRef.current) return;
     const rect = trackpadRef.current.getBoundingClientRect();
     
-    // Direct absolute mapping (0 to 100%)
-    // Removed all smoothing and damping for instant movement
+    // Direct absolute mapping (0 to 100%) - GPU Accelerated
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
     
-    const newPos = { 
-      x: Math.max(0, Math.min(100, x)), 
-      y: Math.max(0, Math.min(100, y)) 
-    };
+    const newX = Math.max(0, Math.min(100, x));
+    const newY = Math.max(0, Math.min(100, y));
     
-    setCursorPos(newPos);
-    cursorX.set(newPos.x);
-    cursorY.set(newPos.y);
+    cursorPosRef.current = { x: newX, y: newY };
+    cursorX.set(newX);
+    cursorY.set(newY);
   }, [cursorX, cursorY]);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -836,52 +863,62 @@ export default function App() {
   };
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    // Current time is handled by DigitalClock component
   }, []);
 
+  // Detection loop for accessibility - throttled for performance
   useEffect(() => {
-    const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const yPx = (cursorPos.y / 100) * window.innerHeight;
-    
-    // Absolute point detection without snapping
-    const el = document.elementFromPoint(xPx, yPx);
-    const target = el?.closest('button') || el?.closest('a') || el?.closest('[role="listitem"]');
-    const elementId = target?.id || (target as any)?.dataset?.appId || null;
+    const checkHover = () => {
+      const { x, y } = cursorPosRef.current;
+      const xPx = (x / 100) * window.innerWidth;
+      const yPx = (y / 100) * window.innerHeight;
+      
+      const el = document.elementFromPoint(xPx, yPx);
+      const target = el?.closest('button') || el?.closest('a') || el?.closest('[role="listitem"]');
+      const elementId = target?.id || (target as any)?.dataset?.appId || null;
 
-    // Direct hover state without snapping logic
-    if (elementId && elementId !== hoveredId && !elementId.includes('tracks')) {
-      setHoveredId(elementId);
-      if (vibrateOnTouch) triggerHaptic([5]);
-    } else if (!elementId && hoveredId) {
-      setHoveredId(null);
-    }
-
-    // Dwell logic stays for accessibility but now follows the absolute cursor position
-    if (dwellEnabled && elementId && !elementId.includes('tracks') && !elementId.includes('mic')) {
-      if (dwellTimerRef.current && hoveredId === elementId) return;
-      if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
-      dwellProgressRef.current = 0;
-      setDwellProgress(0);
-      dwellTimerRef.current = setInterval(() => {
-        dwellProgressRef.current += 5;
-        setDwellProgress(dwellProgressRef.current);
-        if (dwellProgressRef.current >= 100) {
-          handleClick();
-          clearInterval(dwellTimerRef.current!);
-          dwellTimerRef.current = null;
-          dwellProgressRef.current = 0;
-          setDwellProgress(0);
-        }
-      }, 75);
-    } else {
-      if (dwellTimerRef.current) {
-        clearInterval(dwellTimerRef.current);
-        dwellTimerRef.current = null;
-        setDwellProgress(0);
+      if (elementId && elementId !== hoveredId && !elementId.includes('tracks')) {
+        setHoveredId(elementId);
+        if (vibrateOnTouch) triggerHaptic([5]);
+      } else if (!elementId && hoveredId) {
+        setHoveredId(hoveredIdRef.current === null ? null : (hoveredIdRef.current = null));
+        setHoveredId(null);
       }
-    }
-  }, [cursorPos, dwellEnabled, hoveredId, handleClick, cursorX, cursorY, vibrateOnTouch]);
+
+      // Dwell logic
+      if (dwellEnabled && elementId && !elementId.includes('tracks') && !elementId.includes('mic')) {
+        if (dwellTimerRef.current && hoveredIdRef.current === elementId) return;
+        if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
+        
+        hoveredIdRef.current = elementId;
+        dwellProgressRef.current = 0;
+        setDwellProgress(0);
+        dwellTimerRef.current = setInterval(() => {
+          dwellProgressRef.current += 5;
+          setDwellProgress(dwellProgressRef.current);
+          if (dwellProgressRef.current >= 100) {
+            handleClick();
+            clearInterval(dwellTimerRef.current!);
+            dwellTimerRef.current = null;
+            dwellProgressRef.current = 0;
+            setDwellProgress(0);
+          }
+        }, 75);
+      } else {
+        if (dwellTimerRef.current) {
+          clearInterval(dwellTimerRef.current);
+          dwellTimerRef.current = null;
+          setDwellProgress(0);
+          hoveredIdRef.current = null;
+        }
+      }
+    };
+
+    const interval = setInterval(checkHover, 100); // Check every 100ms instead of every frame
+    return () => clearInterval(interval);
+  }, [dwellEnabled, handleClick, vibrateOnTouch, hoveredId]);
+
+  const hoveredIdRef = useRef<string | null>(null);
 
   return (
     <div 
@@ -917,7 +954,7 @@ export default function App() {
       {/* Reading Line Overlay */}
       {readingLine && (
         <motion.div 
-          animate={{ top: `${cursorPos.y}%` }}
+          animate={{ top: `${cursorPosRef.current.y}%` }}
           className={cn(
             "fixed left-0 right-0 h-10 border-y-4 z-[50] pointer-events-none transition-all duration-75",
             themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-yellow-400/40 border-black" : "bg-white/20")
@@ -950,23 +987,12 @@ export default function App() {
         </div>
 
         {/* Centro: RELÓGIO E DATA */}
-        <div className={cn(
-          "flex-1 flex flex-col items-center justify-center text-center border-[4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0 transition-colors",
-          themeMode === 'custom' ? "bg-white border-black text-black" : (THEMES[themeMode]?.uiBg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text)
-        )} onClick={() => {
-          if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(() => {});
-          }
-        }}
-        style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent} : (themeMode !== 'default' ? {boxShadow: `6px 6px 0px 0px ${THEMES[themeMode]?.shadow}`} : {})}
-        >
-          <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none truncate w-full">
-            {currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
-          </span>
-          <span className="font-black text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] opacity-80 truncate w-full">
-            {currentTime.toLocaleDateString(language, { weekday: 'short', day: '2-digit', month: 'short' })}
-          </span>
-        </div>
+        <DigitalClock 
+          language={language} 
+          themeMode={themeMode} 
+          THEMES={THEMES} 
+          customTheme={customTheme} 
+        />
 
         {/* Lado Direito: Settings */}
         <div className="flex-shrink-0">
