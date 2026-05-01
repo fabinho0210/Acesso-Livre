@@ -990,54 +990,56 @@ export default function App() {
               initial={{ scale: 0.9, y: 50 }} 
               animate={{ scale: 1, y: 0 }} 
               className={cn(
-                "w-[90%] max-w-2xl max-h-[85vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-colors",
+                "w-[94%] max-w-2xl h-[85vh] rounded-[48px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-colors overflow-hidden",
                 themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
               )}
               style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
             >
-              <div className={cn("p-6 border-b-[6px] flex-shrink-0 flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 border-black text-black" : "bg-transparent border-current"))}>
+              <div className={cn("p-6 flex-shrink-0 border-b-[6px] border-black flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 text-black" : "bg-transparent border-current"))}>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-2xl border-[4px] border-black/20">
                     <Accessibility size={28} strokeWidth={2.5} />
                   </div>
                   <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
                 </div>
-                <button onClick={() => setShowAccessModal(false)} className={cn("p-2 rounded-xl border-[4px] active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black text-black")}><X size={28} /></button>
+                <button onClick={() => setShowAccessModal(false)} className={cn("p-2 rounded-xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={28} /></button>
               </div>
               
-              <div className="flex-1 p-6 sm:p-8 overflow-y-auto overflow-x-hidden space-y-8 pb-32 custom-scrollbar">
+              <div className="flex-1 p-6 sm:p-8 overflow-y-auto overflow-x-hidden space-y-10 pb-32 custom-scrollbar box-border">
                 {/* CONFIGURAÇÃO / EDIÇÃO */}
                 <section className="bg-black/5 p-6 rounded-[32px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full box-border">
                   <div className="flex items-center justify-between gap-6 flex-wrap sm:flex-nowrap">
-                    <div className="flex items-center gap-4 min-w-0">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
                       <div className={cn("shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border-4 border-black", lockEdit ? "bg-zinc-200" : "bg-red-500 text-white")}>
                         {lockEdit ? <Lock size={32} /> : <Unlock size={32} />}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <h3 className="font-black text-lg sm:text-xl uppercase leading-tight">{t.setup}</h3>
-                        <p className="font-bold text-[10px] sm:text-xs opacity-60 mt-1 uppercase tracking-wider leading-tight">{lockEdit ? "Edição Bloqueada" : "Edição Liberada"}</p>
+                        <h3 className="font-black text-lg sm:text-xl uppercase leading-tight truncate">{t.setup}</h3>
+                        <p className="font-bold text-[10px] sm:text-xs opacity-60 mt-1 uppercase tracking-wider leading-tight truncate">{lockEdit ? "Edição Bloqueada" : "Edição Liberada"}</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => {
-                        const newState = !lockEdit;
-                        setLockEdit(newState);
-                        localStorage.setItem('launcher_lockEdit', String(newState));
-                        triggerHaptic([100]);
-                        speak(newState ? t.lockOn : t.lockOff);
-                      }}
-                      className={cn(
-                        "shrink-0 w-[84px] h-[48px] rounded-full border-[4px] border-black transition-all relative flex items-center px-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none",
-                        lockEdit ? "bg-zinc-300" : "bg-green-400"
-                      )}
-                    >
-                      <motion.div 
-                        animate={{ x: lockEdit ? 0 : 36 }}
-                        className="w-8 h-8 bg-white rounded-full border-4 border-black flex items-center justify-center"
+                    <div className="flex-shrink-0">
+                      <button 
+                        onClick={() => {
+                          const newState = !lockEdit;
+                          setLockEdit(newState);
+                          localStorage.setItem('launcher_lockEdit', String(newState));
+                          triggerHaptic([100]);
+                          speak(newState ? t.lockOn : t.lockOff);
+                        }}
+                        className={cn(
+                          "w-[84px] h-[48px] rounded-full border-[4px] border-black transition-all relative flex items-center px-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none",
+                          lockEdit ? "bg-zinc-300" : "bg-green-400"
+                        )}
                       >
-                        <div className={cn("w-2 h-2 rounded-full", lockEdit ? "bg-zinc-400" : "bg-green-600")} />
-                      </motion.div>
-                    </button>
+                        <motion.div 
+                          animate={{ x: lockEdit ? 0 : 36 }}
+                          className="w-8 h-8 bg-white rounded-full border-4 border-black flex items-center justify-center"
+                        >
+                          <div className={cn("w-2 h-2 rounded-full", lockEdit ? "bg-zinc-400" : "bg-green-600")} />
+                        </motion.div>
+                      </button>
+                    </div>
                   </div>
                 </section>
 
@@ -1184,8 +1186,8 @@ export default function App() {
                 <div className="h-10 shrink-0" />
               </div>
 
-              <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30">
-                <button onClick={() => setShowAccessModal(false)} className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
+              <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
+                <button onClick={() => setShowAccessModal(false)} className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
