@@ -1,0 +1,6 @@
+# Arquivos de Workflow de Deploy
+/.github/workflows/   @owner
+
+# Configurações de Build
+/vite.config.ts       @owner
+/package.json         @owner
