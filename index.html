@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Acesso Livre - Launcher de Acessibilidade</title>
     
-    <!-- Meta Tags para PWA/Mobile -->
+    <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,7 +18,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
                     },
                 }
             }
@@ -26,13 +27,13 @@
     </script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 
     <!-- Styles -->
     <style type="text/tailwindcss">
         @layer base {
             body {
-                @apply antialiased overflow-hidden select-none touch-none;
+                @apply antialiased overflow-hidden bg-black;
                 height: 100dvh;
                 width: 100vw;
             }
@@ -41,76 +42,83 @@
             .safe-top { padding-top: env(safe-area-inset-top); }
             .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
             .h-dvh { height: 100dvh; }
+            
+            /* Custom animations to replace Framer Motion */
+            .transition-cursor {
+                transition: transform 0.15s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            }
+            .transition-all-smooth {
+                transition: all 0.3s ease-in-out;
+            }
+            .scale-press:active {
+                transform: scale(0.95);
+            }
+            .neo-shadow {
+                box-shadow: 6px 6px 0px 0px rgba(0,0,0,1);
+            }
+            .neo-shadow-hover:hover {
+                box-shadow: 8px 8px 0px 0px rgba(0,0,0,1);
+                transform: translate(-2px, -2px);
+            }
         }
     </style>
 
     <style>
-        /* Animações CSS puro para substituir Framer Motion */
-        .page-transition {
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-        }
-        .modal-enter {
-            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-        .scale-on-hover:hover {
-            transform: scale(1.05);
-        }
-        .active-press:active {
-            transform: translate(4px, 4px);
-        }
-        .ripple {
-            animation: ripple-effect 1s linear forwards;
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid rgba(0,0,0,0.2);
-            pointer-events: none;
-        }
-        @keyframes ripple-effect {
-            0% { transform: scale(0); opacity: 0.8; }
-            100% { transform: scale(20); opacity: 0; }
-        }
-        /* Cursor Dwell Circle Anim */
-        .dwell-circle {
-            transition: stroke-dashoffset 0.15s linear;
-        }
         * { -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
+        [v-cloak] { display: none; }
+        
+        /* Dwell progress animation */
+        @keyframes dwell-fill {
+            from { stroke-dashoffset: 213; }
+            to { stroke-dashoffset: 0; }
+        }
+        .dwell-progress-circle {
+            stroke-dasharray: 213;
+            stroke-dashoffset: 213;
+        }
+
+        /* Colorblind Filters */
+        .filter-protanopia { filter: url(#protanopia); }
+        .filter-deuteranopia { filter: url(#deuteranopia); }
+        .filter-tritanopia { filter: url(#tritanopia); }
     </style>
 </head>
-<body class="bg-[#f5f5f0]">
+<body>
     <div id="root"></div>
 
-    <!-- Bibliotecas Externas (CDNs Estáveis) -->
+    <!-- Libraries via CDN -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- App Logic -->
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
-        // Utilitário de Classe
-        const cn = (...classes) => classes.filter(Boolean).join(' ');
+        // Custom implementation of 'cn'
+        function cn(...inputs) {
+            return inputs.filter(Boolean).join(' ');
+        }
 
-        // Componente de Ícone Lucide
-        const Icon = ({ name, size = 32, className = '', strokeWidth = 3 }) => {
+        // Icons handled via Lucide
+        const Icon = ({ name, size = 24, className = '', strokeWidth = 2 }) => {
             const iconRef = useRef(null);
             useEffect(() => {
                 if (iconRef.current && window.lucide) {
                     iconRef.current.innerHTML = '';
-                    const i = document.createElement('i');
-                    i.setAttribute('data-lucide', name);
-                    iconRef.current.appendChild(i);
+                    const temp = document.createElement('div');
+                    temp.setAttribute('data-lucide', name);
+                    iconRef.current.appendChild(temp);
+                    
                     window.lucide.createIcons({
                         icons: { [name]: window.lucide.icons[name] },
                         attrs: { 
-                            class: className, 
-                            width: size, 
-                            height: size, 
-                            'stroke-width': strokeWidth 
+                            class: className,
+                            width: size,
+                            height: size,
+                            'stroke-width': strokeWidth
                         }
                     });
                 }
@@ -118,268 +126,410 @@
             return <span ref={iconRef} className="inline-block leading-none" />;
         };
 
-        // Traduções
+        // Translations
         const translations = {
             pt: {
-                title: "ACESSO LIVRE",
-                settings: "Ajustes",
-                voiceGuide: "Voz",
-                trackpad: "ÁREA DE TOQUE",
-                back: "VOLTAR",
-                home: "INÍCIO",
-                help: "AJUDA",
-                newApp: "NOVO APP",
-                emergency: "EMERGÊNCIA",
-                phone: "TELEFONE",
-                contrast: "ALTO CONTRASTE",
-                assistive: "MODO ASSISTIVO",
+                title: "Acesso Livre",
+                settings: "Configurações",
                 done: "CONCLUIR",
-                youSaid: "Você disse",
-                clockFormat: { hour: '2-digit', minute: '2-digit' }
+                back: "Voltar",
+                home: "Início",
+                help: "Ajuda",
+                trackpad: "ÁREA DE CONTROLE",
+                emergency: "EMERGÊNCIA",
+                whatsapp: "WHATSAPP",
+                phone: "TELEFONE",
+                family: "FAMÍLIA",
+                voiceActive: "Ouvindo...",
+                voiceIdle: "Voz Desativada",
+                highContrast: "ALTO CONTRASTE",
+                darkMode: "Modo Escuro",
+                fontSize: "Tamanho da Fonte",
+                language: "Idioma",
+                colorblind: "Modo Daltônico",
+                dwell: "Auto-Clique",
+                assistive: "Modo Assistivo",
+                newApp: "Novo Botão",
+                appName: "Nome do botão:",
             },
             en: {
-                title: "FREE ACCESS",
+                title: "Free Access",
                 settings: "Settings",
-                voiceGuide: "Voice",
-                trackpad: "TOUCH AREA",
-                back: "BACK",
-                home: "HOME",
-                help: "HELP",
-                newApp: "NEW APP",
-                emergency: "EMERGENCY",
-                phone: "PHONE",
-                contrast: "HIGH CONTRAST",
-                assistive: "ASSISTIVE MODE",
                 done: "DONE",
-                youSaid: "You said",
-                clockFormat: { hour: '2-digit', minute: '2-digit' }
+                back: "Back",
+                home: "Home",
+                help: "Help",
+                trackpad: "CONTROL AREA",
+                emergency: "EMERGENCY",
+                whatsapp: "WHATSAPP",
+                phone: "PHONE",
+                family: "FAMILY",
+                voiceActive: "Listening...",
+                voiceIdle: "Voice Disabled",
+                highContrast: "HIGH CONTRAST",
+                darkMode: "Dark Mode",
+                fontSize: "Font Size",
+                language: "Language",
+                colorblind: "Colorblind Mode",
+                dwell: "Dwell Click",
+                assistive: "Assistive Mode",
+                newApp: "New Button",
+                appName: "Button name:",
             }
         };
 
-        function App() {
-            // Estado Global
-            const [lang, setLang] = useState(localStorage.getItem('al_lang') || 'pt');
-            const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('al_dark') === 'true');
-            const [highContrast, setHighContrast] = useState(localStorage.getItem('al_contrast') === 'true');
-            const [isAssistiveMode, setIsAssistiveMode] = useState(localStorage.getItem('al_assistive') !== 'false');
-            const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
-            const [dwellEnabled, setDwellEnabled] = useState(true);
-            const [dwellProgress, setDwellProgress] = useState(0);
-            const [showSettings, setShowSettings] = useState(false);
-            const [isVoiceActive, setIsVoiceActive] = useState(false);
-            const [lastCommand, setLastCommand] = useState('');
-            const [currentTime, setCurrentTime] = useState(new Date());
-
-            const t = translations[lang];
-            const dwellTimerRef = useRef(null);
-            const hoveredIdRef = useRef(null);
-
-            // Relógio
+        // Digital Clock Component
+        const Clock = ({ className }) => {
+            const [time, setTime] = useState(new Date());
             useEffect(() => {
-                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                const timer = setInterval(() => setTime(new Date()), 1000);
                 return () => clearInterval(timer);
             }, []);
+            
+            const hours = time.getHours().toString().padStart(2, '0');
+            const minutes = time.getMinutes().toString().padStart(2, '0');
+            
+            return (
+                <div className={cn("font-black tracking-tighter", className)}>
+                    {hours}<span className="animate-pulse">:</span>{minutes}
+                </div>
+            );
+        };
 
-            // Cursor e Dwell
-            const executeClick = useCallback(() => {
-                const headerH = 100;
-                const mainH = isAssistiveMode ? (window.innerHeight * 0.6) - headerH : window.innerHeight - headerH;
+        function App() {
+            const [lang, setLang] = useState(localStorage.getItem('launcher_lang') || 'pt');
+            const t = translations[lang] || translations.pt;
+
+            const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
+            const [isVoiceActive, setIsVoiceActive] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [highContrast, setHighContrast] = useState(localStorage.getItem('launcher_highContrast') === 'true');
+            const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('launcher_darkMode') === 'true');
+            const [dwellEnabled, setDwellEnabled] = useState(localStorage.getItem('launcher_dwellEnabled') === 'true');
+            const [dwellProgress, setDwellProgress] = useState(0);
+            const [hoveredId, setHoveredId] = useState(null);
+            const [isAssistiveMode, setIsAssistiveMode] = useState(localStorage.getItem('launcher_assistiveMode') !== 'false');
+            const [fontSize, setFontSize] = useState(localStorage.getItem('launcher_fontSize') || 'medium');
+            const [colorblindMode, setColorblindMode] = useState(localStorage.getItem('launcher_colorblindMode') || 'none');
+            
+            const dwellTimerRef = useRef(null);
+
+            const [apps, setApps] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('launcher_apps');
+                    if (saved) return JSON.parse(saved);
+                } catch (e) {}
+                return [
+                    { id: 'app-emergency', label: t.emergency, color: 'bg-red-600', icon: 'zap' },
+                    { id: 'app-whatsapp', label: t.whatsapp, color: 'bg-emerald-600', icon: 'message-circle' },
+                    { id: 'app-phone', label: t.phone, color: 'bg-green-500', icon: 'phone' },
+                    { id: 'app-family', label: t.family, color: 'bg-purple-500', icon: 'heart' },
+                    { id: 'app-camera', label: 'Câmera', color: 'bg-blue-500', icon: 'camera' },
+                    { id: 'app-photos', label: 'Fotos', color: 'bg-orange-500', icon: 'image' },
+                    { id: 'app-radio', label: 'Rádio', color: 'bg-zinc-600', icon: 'radio' },
+                    { id: 'app-youtube', label: 'Vídeos', color: 'bg-red-500', icon: 'play' },
+                ];
+            });
+
+            const saveSetting = (key, val) => {
+                localStorage.setItem(`launcher_${key}`, String(val));
+            };
+
+            const triggerHaptic = (pattern = [40]) => {
+                if ('vibrate' in navigator) navigator.vibrate(pattern);
+            };
+
+            const handleClickAtCursor = () => {
+                triggerHaptic();
+                const headerH = window.innerWidth < 640 ? 80 : 96;
+                const mainH = (window.innerHeight * 0.6) - headerH;
                 const xPx = (cursorPos.x / 100) * window.innerWidth;
                 const yPx = (cursorPos.y / 100) * mainH + headerH;
                 
                 const el = document.elementFromPoint(xPx, yPx);
-                const btn = el?.closest('button') || el?.closest('a');
-                if (btn) {
-                    btn.click();
-                    if ('vibrate' in navigator) navigator.vibrate(50);
-                }
-            }, [cursorPos, isAssistiveMode]);
+                const btn = el?.closest('button');
+                if (btn) btn.click();
+                else el?.click();
+            };
 
-            useEffect(() => {
-                if (!isAssistiveMode || !dwellEnabled) return;
-
-                const headerH = 100;
-                const mainH = (window.innerHeight * 0.6) - headerH;
-                const xPx = (cursorPos.x / 100) * window.innerWidth;
-                const yPx = (cursorPos.y / 100) * mainH + headerH;
-                const el = document.elementFromPoint(xPx, yPx);
-                const currentId = el?.id || el?.closest('button')?.id || null;
-
-                if (currentId && currentId !== 'trackpad' && currentId !== hoveredIdRef.current) {
-                    hoveredIdRef.current = currentId;
-                    setDwellProgress(0);
-                    if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
-                    
-                    let progress = 0;
-                    dwellTimerRef.current = setInterval(() => {
-                        progress += 5;
-                        setDwellProgress(progress);
-                        if (progress >= 100) {
-                            executeClick();
-                            clearInterval(dwellTimerRef.current);
-                        }
-                    }, 75);
-                } else if (!currentId || currentId === 'trackpad') {
-                    hoveredIdRef.current = null;
-                    setDwellProgress(0);
-                    if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
-                }
-            }, [cursorPos, dwellEnabled, isAssistiveMode, executeClick]);
-
-            // Trackpad
-            const handleMove = (e) => {
+            const handleTouchTrackpad = (e) => {
                 const touch = e.touches ? e.touches[0] : e;
                 const rect = document.getElementById('trackpad').getBoundingClientRect();
                 const x = ((touch.clientX - rect.left) / rect.width) * 100;
                 const y = ((touch.clientY - rect.top) / rect.height) * 100;
-                setCursorPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+                setCursorPos({ 
+                    x: Math.max(0, Math.min(100, x)), 
+                    y: Math.max(0, Math.min(100, y)) 
+                });
             };
 
-            // Estilos de Tema
-            const themeClass = highContrast 
-                ? "bg-black text-white" 
-                : (isDarkMode ? "bg-zinc-950 text-white" : "bg-[#f5f5f0] text-gray-900");
-            
-            const btnClass = (color) => cn(
-                "p-8 border-4 border-black rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all active-press shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]",
-                highContrast ? "bg-black border-white text-white" : `${color} text-white`
-            );
+            useEffect(() => {
+                const checkHover = () => {
+                    const headerH = window.innerWidth < 640 ? 80 : 96;
+                    const mainH = (window.innerHeight * 0.6) - headerH;
+                    const xPx = (cursorPos.x / 100) * window.innerWidth;
+                    const yPx = (cursorPos.y / 100) * mainH + headerH;
+                    
+                    const el = document.elementFromPoint(xPx, yPx);
+                    const btnId = el?.id || el?.closest('button')?.id;
+
+                    if (btnId && btnId !== hoveredId) {
+                        setHoveredId(btnId);
+                        triggerHaptic([10]);
+                        
+                        if (dwellEnabled && btnId !== 'trackpad') {
+                            setDwellProgress(0);
+                            let progress = 0;
+                            if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
+                            dwellTimerRef.current = setInterval(() => {
+                                progress += 5;
+                                setDwellProgress(progress);
+                                if (progress >= 100) {
+                                    handleClickAtCursor();
+                                    clearInterval(dwellTimerRef.current);
+                                }
+                            }, 50);
+                        }
+                    } else if (!btnId && hoveredId) {
+                        setHoveredId(null);
+                        setDwellProgress(0);
+                        if (dwellTimerRef.current) clearInterval(dwellTimerRef.current);
+                    }
+                };
+                if (isAssistiveMode) checkHover();
+            }, [cursorPos, isAssistiveMode, dwellEnabled]);
 
             return (
-                <div className={cn("fixed inset-0 flex flex-col safe-top safe-bottom font-sans", themeClass)}>
-                    
-                    {/* Header: Relógio e Logo */}
-                    <header className="h-[100px] px-8 flex items-center justify-between border-b-4 border-black bg-white text-black">
+                <div className={cn(
+                    "fixed inset-0 flex flex-col transition-colors duration-500 font-sans",
+                    highContrast ? "bg-black text-white" : (isDarkMode ? "bg-zinc-950 text-white" : "bg-[#f5f5f0] text-gray-900"),
+                    colorblindMode !== 'none' && `filter-${colorblindMode}`
+                )}>
+                    {/* Header: Clock + Settings */}
+                    <header className={cn(
+                        "h-20 sm:h-24 px-6 flex items-center justify-between border-b-4 border-black safe-top",
+                        highContrast ? "bg-zinc-950 border-white/20" : (isDarkMode ? "bg-zinc-900 border-black" : "bg-white border-black")
+                    )}>
                         <div className="flex items-center gap-4">
-                            <span className="text-4xl font-black uppercase italic tracking-tighter">{t.title}</span>
+                             <Clock className="text-4xl sm:text-5xl" />
+                             <h1 className="text-sm font-black uppercase opacity-40 ml-2 hidden sm:block">{t.title}</h1>
                         </div>
-                        <div className="flex flex-col items-end">
-                            <span className="text-4xl font-black">{currentTime.toLocaleTimeString(lang, t.clockFormat)}</span>
-                            <button id="btn-settings" onClick={() => setShowSettings(true)} className="flex items-center gap-2 uppercase font-bold text-xs opacity-50 underline">
-                                {t.settings}
-                            </button>
-                        </div>
+                        <button 
+                            id="btn-settings"
+                            onClick={() => setShowSettings(true)}
+                            className={cn(
+                                "p-3 border-4 border-black neo-shadow scale-press",
+                                highContrast ? "bg-white text-black" : "bg-yellow-400 text-black"
+                            )}
+                        >
+                            <Icon name="settings" size={32} strokeWidth={3} />
+                        </button>
                     </header>
 
-                    {/* Apps Grid */}
-                    <main className={cn("flex-1 p-8 grid grid-cols-1 sm:grid-cols-2 gap-8 overflow-y-auto mb-[20px]", isAssistiveMode ? "h-[45%]" : "")}>
-                        <button id="app-whatsapp" className={btnClass("bg-emerald-600")}>
-                            <Icon name="phone" size={64} />
-                            <span className="text-3xl font-black uppercase">WhatsApp</span>
-                        </button>
-                        <button id="app-emergency" className={btnClass("bg-red-600")}>
-                            <Icon name="alert-triangle" size={64} />
-                            <span className="text-3xl font-black uppercase">{t.emergency}</span>
-                        </button>
-                        <button id="app-phone" className={btnClass("bg-blue-600")}>
-                            <Icon name="user" size={64} />
-                            <span className="text-3xl font-black uppercase">{t.phone}</span>
-                        </button>
-                        <button id="app-new" className="p-8 border-4 border-dashed border-zinc-400 rounded-[40px] flex flex-col items-center justify-center gap-2 opacity-50">
-                            <Icon name="plus" size={48} />
-                            <span className="text-xl font-bold uppercase">{t.newApp}</span>
-                        </button>
+                    {/* Main Content: Grid of Apps */}
+                    <main className={cn(
+                        "flex-1 p-6 grid grid-cols-2 lg:grid-cols-4 gap-6 content-start",
+                        isAssistiveMode ? "overflow-hidden" : "overflow-y-auto"
+                    )}>
+                        <div 
+                            className="w-full grid grid-cols-2 lg:grid-cols-4 gap-6"
+                            style={{ 
+                                transform: `scale(${zoomScale}) translate(${panPos.x}px, ${panPos.y}px)`,
+                                transition: 'transform 0.3s ease-out'
+                            }}
+                        >
+                            {apps.map(app => (
+                                <button
+                                    key={app.id}
+                                    id={app.id}
+                                    onClick={() => alert(`${t.title}: ${app.label}`)}
+                                    className={cn(
+                                        "aspect-square rounded-[40px] border-4 border-black neo-shadow flex flex-col items-center justify-center p-4 transition-all active:scale-95",
+                                        hoveredId === app.id ? "bg-white text-black scale-105" : (app.color || "bg-blue-500"),
+                                        highContrast && "bg-zinc-900 border-white border-[6px]"
+                                    )}
+                                >
+                                    <Icon name={app.icon || 'star'} size={window.innerWidth < 640 ? 64 : 80} strokeWidth={3} />
+                                    <span className={cn(
+                                        "font-black uppercase mt-4 tracking-tighter leading-none text-center",
+                                        fontSize === 'large' ? "text-3xl" : "text-xl"
+                                    )}>
+                                        {app.label}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
                     </main>
 
-                    {/* Cursor Virtual (Assistivo) */}
+                    {/* Assistive Mode: Cursor and Trackpad */}
                     {isAssistiveMode && (
-                        <div className="fixed inset-0 pointer-events-none z-[400]">
+                        <>
+                            {/* Cursor */}
                             <div 
-                                className="absolute pointer-events-none transition-transform duration-75"
-                                style={{ left: `${cursorPos.x}%`, top: `calc(${cursorPos.y}% + 100px)`, transform: 'translate(-32px, -32px)' }}
+                                className="fixed pointer-events-none z-[1000] transition-cursor"
+                                style={{ 
+                                    left: `${cursorPos.x}vw`, 
+                                    top: `calc(${cursorPos.y}vh + 96px)`, 
+                                    transform: 'translate(-50%, -50%)' 
+                                }}
                             >
                                 <div className="relative">
-                                    {dwellProgress > 0 && (
-                                        <svg className="absolute -inset-4 w-24 h-24 -rotate-90">
-                                            <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-black" strokeDasharray="251" strokeDashoffset={251 - (251 * dwellProgress / 100)} />
+                                    {dwellEnabled && dwellProgress > 0 && (
+                                        <svg className="absolute -inset-6 w-24 h-24 -rotate-90">
+                                            <circle 
+                                                cx="48" cy="48" r="34" 
+                                                fill="transparent" 
+                                                stroke={highContrast ? "white" : "#facc15"} 
+                                                strokeWidth="10" 
+                                                strokeDasharray="213"
+                                                style={{ strokeDashoffset: 213 - (213 * dwellProgress / 100) }}
+                                            />
                                         </svg>
                                     )}
-                                    <Icon name="mouse-pointer-2" size={64} className={highContrast ? "text-white" : "text-black fill-yellow-400 drop-shadow-xl"} />
+                                    <Icon 
+                                        name="mouse-pointer-2" 
+                                        size={64} 
+                                        strokeWidth={3} 
+                                        className={cn(highContrast ? "text-white" : "text-black fill-yellow-400 drop-shadow-2xl")}
+                                    />
                                 </div>
                             </div>
+
+                            {/* Control Bar (Trackpad area) */}
+                            <section className="bg-white border-t-8 border-black h-[40vh] min-h-[300px] flex flex-col safe-bottom">
+                                <div className="h-20 flex border-b-4 border-black divide-x-4 divide-black">
+                                    <button className="flex-1 flex items-center justify-center gap-2 font-black uppercase text-xs">
+                                        <Icon name="arrow-left" /><span className="hidden sm:inline">{t.back}</span>
+                                    </button>
+                                    <button className="flex-1 flex items-center justify-center gap-2 font-black uppercase text-xs">
+                                        <Icon name="home" /><span className="hidden sm:inline">{t.home}</span>
+                                    </button>
+                                    <button className="flex-1 flex items-center justify-center gap-2 font-black uppercase text-xs text-red-600">
+                                        <Icon name="triangle-alert" /><span className="hidden sm:inline">{t.emergency}</span>
+                                    </button>
+                                </div>
+                                <div className="flex-1 flex">
+                                    <button 
+                                        onClick={() => setIsVoiceActive(!isVoiceActive)}
+                                        className={cn(
+                                            "w-28 sm:w-36 border-r-4 border-black flex flex-col items-center justify-center gap-2",
+                                            isVoiceActive ? "bg-red-500 text-white animate-pulse" : "bg-gray-100"
+                                        )}
+                                    >
+                                        <Icon name={isVoiceActive ? 'mic' : 'mic-off'} size={40} />
+                                        <span className="text-[10px] font-bold uppercase">{isVoiceActive ? t.voiceActive : t.voiceIdle}</span>
+                                    </button>
+                                    
+                                    <div 
+                                        id="trackpad"
+                                        className="flex-1 bg-zinc-100 flex items-center justify-center touch-none relative"
+                                        onTouchMove={handleTouchTrackpad}
+                                        onMouseMove={(e) => e.buttons === 1 && handleTouchTrackpad(e)}
+                                        onClick={handleClickAtCursor}
+                                    >
+                                        <span className="font-black text-2xl sm:text-4xl opacity-10 uppercase tracking-[0.5em]">
+                                            {t.trackpad}
+                                        </span>
+                                    </div>
+
+                                    <div className="w-24 border-l-4 border-black flex flex-col divide-y-4 divide-black">
+                                        <button className="flex-1 flex items-center justify-center"><Icon name="zoom-in" size={32} /></button>
+                                        <button className="flex-1 flex items-center justify-center"><Icon name="zoom-out" size={32} /></button>
+                                    </div>
+                                </div>
+                            </section>
+                        </>
+                    )}
+
+                    {/* Settings Modal */}
+                    <div className={cn(
+                        "fixed inset-0 z-[2000] p-8 flex flex-col overflow-y-auto transition-transform duration-500 safe-top safe-bottom",
+                        highContrast ? "bg-black text-white" : "bg-white text-black",
+                        showSettings ? "translate-x-0" : "translate-x-full"
+                    )}>
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-4xl font-black italic uppercase">{t.settings}</h2>
+                            <button 
+                                onClick={() => setShowSettings(false)} 
+                                className={cn(
+                                    "w-16 h-16 rounded-full flex items-center justify-center scale-press",
+                                    highContrast ? "bg-white text-black" : "bg-black text-white"
+                                )}
+                            >
+                                <Icon name="x" size={40} />
+                            </button>
+                        </div>
+
+                            <div className="space-y-10 pb-10">
+                                <section className="space-y-4">
+                                    <label className="text-sm font-black uppercase opacity-40">{t.highContrast}</label>
+                                    <button 
+                                        onClick={() => { setHighContrast(!highContrast); saveSetting('highContrast', !highContrast); }}
+                                        className={cn(
+                                            "w-full py-6 border-8 border-black rounded-3xl text-2xl font-black uppercase",
+                                            highContrast ? "bg-white text-black" : "bg-black text-white"
+                                        )}
+                                    >
+                                        {highContrast ? "Desativar" : "Ativar"}
+                                    </button>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <label className="text-sm font-black uppercase opacity-40">{t.dwell}</label>
+                                    <button 
+                                        onClick={() => { setDwellEnabled(!dwellEnabled); saveSetting('dwellEnabled', !dwellEnabled); }}
+                                        className={cn(
+                                            "w-full py-6 border-8 border-black rounded-3xl text-2xl font-black uppercase",
+                                            dwellEnabled ? "bg-yellow-400 text-black" : "bg-gray-100"
+                                        )}
+                                    >
+                                        {dwellEnabled ? "Ligado" : "Desligado"}
+                                    </button>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <label className="text-sm font-black uppercase opacity-40">{t.assistive}</label>
+                                    <button 
+                                        onClick={() => { setIsAssistiveMode(!isAssistiveMode); saveSetting('assistiveMode', !isAssistiveMode); }}
+                                        className={cn(
+                                            "w-full py-6 border-8 border-black rounded-3xl text-2xl font-black uppercase",
+                                            isAssistiveMode ? "bg-blue-400 text-black" : "bg-gray-100"
+                                        )}
+                                    >
+                                        {isAssistiveMode ? "Trackpad Ativo" : "Toque Direto"}
+                                    </button>
+                                </section>
+                            </div>
+
+                            <button 
+                                onClick={() => setShowSettings(false)}
+                                className="mt-auto py-8 bg-green-500 border-8 border-black rounded-3xl text-3xl font-black uppercase neo-shadow"
+                            >
+                                {t.done}
+                            </button>
                         </div>
                     )}
 
-                    {/* Painel de Controle Inferior */}
-                    {isAssistiveMode && (
-                        <section className="h-[40%] bg-white border-t-4 border-black flex flex-col">
-                            <div className="h-16 flex border-b-4 border-black divide-x-4 divide-black">
-                                <button className="flex-1 font-black flex items-center justify-center gap-2"><Icon name="arrow-left" size={20} />{t.back}</button>
-                                <button className="flex-1 font-black flex items-center justify-center gap-2"><Icon name="home" size={20} />{t.home}</button>
-                                <button className="flex-1 font-black flex items-center justify-center gap-2 text-red-600"><Icon name="alert-circle" size={20} />{t.help}</button>
-                            </div>
-                            <div className="flex-1 flex touch-none">
-                                <div id="trackpad" 
-                                    className="flex-1 bg-zinc-100 flex items-center justify-center relative touch-none"
-                                    onPointerMove={handleMove}
-                                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); handleMove(e); }}
-                                >
-                                    <span className="font-black text-2xl opacity-10 tracking-[1em]">{t.trackpad}</span>
-                                </div>
-                                <div className="w-24 border-l-4 border-black flex flex-col divide-y-4 divide-black">
-                                    <button className="flex-1 flex items-center justify-center bg-zinc-50"><Icon name="zoom-in" /></button>
-                                    <button className="flex-1 flex items-center justify-center bg-zinc-50"><Icon name="zoom-out" /></button>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* Modal de Configurações */}
-                    <AnimatePresence>
-                        {showSettings && (
-                            <div className="fixed inset-0 z-[500] bg-white text-black p-10 modal-enter flex flex-col">
-                                <div className="flex justify-between items-center mb-12">
-                                    <h2 className="text-5xl font-black italic">{t.settings}</h2>
-                                    <button onClick={() => setShowSettings(false)} className="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center">
-                                        <Icon name="x" size={40} />
-                                    </button>
-                                </div>
-                                
-                                <div className="space-y-12 flex-1">
-                                    <div className="space-y-4">
-                                        <span className="font-black text-xs opacity-30 uppercase tracking-widest">{t.assistive}</span>
-                                        <button 
-                                            onClick={() => { setIsAssistiveMode(!isAssistiveMode); localStorage.setItem('al_assistive', !isAssistiveMode); }}
-                                            className={cn("w-full p-8 border-4 border-black rounded-3xl font-black text-2xl flex justify-between items-center", isAssistiveMode ? "bg-yellow-400" : "bg-zinc-100")}
-                                        >
-                                            {isAssistiveMode ? "ATIVADO" : "DESATIVADO"}
-                                            <Icon name={isAssistiveMode ? "check-circle" : "circle"} />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <span className="font-black text-xs opacity-30 uppercase tracking-widest">{t.contrast}</span>
-                                        <button 
-                                            onClick={() => { setHighContrast(!highContrast); localStorage.setItem('al_contrast', !highContrast); }}
-                                            className={cn("w-full p-8 border-4 border-black rounded-3xl font-black text-2xl", highContrast ? "bg-black text-white" : "bg-zinc-100")}
-                                        >
-                                            {highContrast ? "DESATIVAR" : "ATIVAR"}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <button onClick={() => setShowSettings(false)} className="w-full py-8 bg-yellow-400 border-4 border-black rounded-[40px] font-black text-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-                                    {t.done}
-                                </button>
-                            </div>
-                        )}
-                    </AnimatePresence>
+                    {/* SVG Filters for Colorblind Modes */}
+                    <svg className="hidden">
+                        <defs>
+                            <filter id="protanopia">
+                                <feColorMatrix type="matrix" values="0.567, 0.433, 0, 0, 0, 0.558, 0.442, 0, 0, 0, 0, 0.242, 0.758, 0, 0, 0, 0, 0, 1, 0" />
+                            </filter>
+                            <filter id="deuteranopia">
+                                <feColorMatrix type="matrix" values="0.625, 0.375, 0, 0, 0, 0.7, 0.3, 0, 0, 0, 0, 0.3, 0.7, 0, 0, 0, 0, 0, 1, 0" />
+                            </filter>
+                            <filter id="tritanopia">
+                                <feColorMatrix type="matrix" values="0.95, 0.05, 0, 0, 0, 0, 0.433, 0.567, 0, 0, 0, 0.475, 0.525, 0, 0, 0, 0, 0, 1, 0" />
+                            </filter>
+                        </defs>
+                    </svg>
                 </div>
             );
         }
 
-        // Simulação básica do AnimatePresence para o single file
-        function AnimatePresence({ children }) {
-            return <>{children}</>;
-        }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
-        // Inicializar ícones lucide manualmente na carga
-        window.addEventListener('load', () => {
-            if (window.lucide) window.lucide.createIcons();
-        });
     </script>
 </body>
 </html>
