@@ -66,12 +66,29 @@ interface ExternalApp {
 }
 
 export default function App() {
+  // --- Theme States ---
+  type Language = 'pt-BR' | 'en-US' | 'es-ES';
+  const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('launcher_language') as Language) || 'pt-BR');
+  
+  type ThemePreset = 'default' | 'classic' | 'inverted' | 'night' | 'solar' | 'custom';
+  const [themeMode, setThemeMode] = useState<ThemePreset>(() => {
+    if (window.matchMedia('(prefers-contrast: more)').matches) return 'classic';
+    const saved = localStorage.getItem('launcher_themeMode');
+    const validThemes: ThemePreset[] = ['default', 'classic', 'inverted', 'night', 'solar', 'custom'];
+    return (validThemes.includes(saved as ThemePreset) ? saved : 'default') as ThemePreset;
+  });
+
+  const [customTheme, setCustomTheme] = useState(() => {
+    const saved = localStorage.getItem('launcher_customTheme');
+    return saved ? JSON.parse(saved) : { bg: '#e5e7eb', fg: '#000000', accent: '#facc15' };
+  });
+
   // --- Accessibility States ---
   const [fontSize, setFontSize] = useState<number>(() => parseInt(localStorage.getItem('launcher_fontSize') || '22'));
-  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('launcher_darkMode') === 'true');
-  const [highContrastMode, setHighContrastMode] = useState(() => localStorage.getItem('launcher_highContrast') === 'true');
-  const [reduceMotion, setReduceMotion] = useState(() => localStorage.getItem('launcher_reduceMotion') === 'true');
-  const [colorblindMode, setColorblindMode] = useState(() => localStorage.getItem('launcher_colorblindMode') === 'true');
+  const [isDarkMode, setIsDarkMode] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [highContrastMode, setHighContrastMode] = useState(() => window.matchMedia('(prefers-contrast: more)').matches);
+  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [colorblindMode, setColorblindMode] = useState(() => false);
   const [lockEdit, setLockEdit] = useState(() => localStorage.getItem('launcher_lockEdit') === 'true');
   const [vibrateOnTouch, setVibrateOnTouch] = useState(() => localStorage.getItem('launcher_vibrateOnTouch') !== 'false');
   const [readingLine, setReadingLine] = useState(false);
@@ -82,9 +99,36 @@ export default function App() {
   const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
   const [showCursor, setShowCursor] = useState(() => localStorage.getItem('launcher_showCursor') !== 'false');
   
-  // --- Theme States ---
-  type Language = 'pt-BR' | 'en-US' | 'es-ES';
-  const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('launcher_language') as Language) || 'pt-BR');
+  // Listen to system changes
+  useEffect(() => {
+    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const contrastQuery = window.matchMedia('(prefers-contrast: more)');
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const handleChange = () => {
+      setIsDarkMode(darkModeQuery.matches);
+      setReduceMotion(motionQuery.matches);
+      
+      if (contrastQuery.matches) {
+        setHighContrastMode(true);
+        setThemeMode('classic');
+      } else {
+        setHighContrastMode(false);
+        // We don't force back to 'default' if the user chose something else
+        // but if they were in high contrast and it turned off, it's safer to revert or keep
+      }
+    };
+
+    darkModeQuery.addEventListener('change', handleChange);
+    contrastQuery.addEventListener('change', handleChange);
+    motionQuery.addEventListener('change', handleChange);
+
+    return () => {
+      darkModeQuery.removeEventListener('change', handleChange);
+      contrastQuery.removeEventListener('change', handleChange);
+      motionQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   const TRANSLATIONS = {
     'pt-BR': {
@@ -363,21 +407,17 @@ export default function App() {
     speak(msg);
   }, [language]);
 
-  // --- Theme States ---
-  type ThemePreset = 'default' | 'classic' | 'inverted' | 'night' | 'solar' | 'custom';
-  const [themeMode, setThemeMode] = useState<ThemePreset>(() => {
-    const saved = localStorage.getItem('launcher_themeMode');
-    const validThemes: ThemePreset[] = ['default', 'classic', 'inverted', 'night', 'solar', 'custom'];
-    return (validThemes.includes(saved as ThemePreset) ? saved : 'default') as ThemePreset;
-  });
-  const [customTheme, setCustomTheme] = useState(() => {
-    const saved = localStorage.getItem('launcher_customTheme');
-    return saved ? JSON.parse(saved) : { bg: '#e5e7eb', fg: '#000000', accent: '#facc15' };
-  });
-
   // --- Theme Configuration ---
   const THEMES: Record<ThemePreset, { bg: string, text: string, cardBorder: string, shadow: string, name: string, uiBg: string, accentText: string }> = {
-    default: { bg: 'bg-[#e5e7eb]', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Padrão', uiBg: 'bg-white', accentText: 'text-black' },
+    default: { 
+      bg: isDarkMode ? 'bg-[#111821]' : 'bg-[#e5e7eb]', 
+      text: isDarkMode ? 'text-white' : 'text-black', 
+      cardBorder: isDarkMode ? 'border-white' : 'border-black', 
+      shadow: isDarkMode ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)', 
+      name: 'Padrão', 
+      uiBg: isDarkMode ? 'bg-[#1e293b]' : 'bg-white', 
+      accentText: isDarkMode ? 'text-white' : 'text-black' 
+    },
     classic: { bg: 'bg-black', text: 'text-[#facc15]', cardBorder: 'border-[#facc15]', shadow: '#facc15', name: 'Clássico', uiBg: 'bg-black', accentText: 'text-[#facc15]' },
     inverted: { bg: 'bg-white', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Invertido', uiBg: 'bg-white', accentText: 'text-black' },
     night: { bg: 'bg-[#0f172a]', text: 'text-[#38bdf8]', cardBorder: 'border-[#38bdf8]', shadow: '#38bdf8', name: 'Noturno', uiBg: 'bg-[#1e293b]', accentText: 'text-[#38bdf8]' },
@@ -1170,67 +1210,6 @@ export default function App() {
                     <button onClick={() => { setFontSize(s => Math.max(12, s - 4)); triggerHaptic([50]); }} className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><ZoomOut size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.decreaseText}</span></button>
                     <button onClick={() => setReadingLine(!readingLine)} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
                     
-                    <section className="col-span-2 mt-6">
-                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2 px-2 text-black"><Palette size={24} /> {t.themes}</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {(Object.entries(THEMES) as [ThemePreset, any][]).filter(([k]) => k !== 'custom').map(([key, item]) => (
-                          <button 
-                            key={key} 
-                            onClick={() => {
-                              setThemeMode(key);
-                              localStorage.setItem('launcher_themeMode', key);
-                              triggerHaptic([50]);
-                              speak(`${t.themeActivated}: ${THEME_NAMES[language][key]}`);
-                            }}
-                            className={cn(
-                              "min-h-[96px] p-3 rounded-xl border-[3px] flex items-center justify-center font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
-                              themeMode === key ? "border-blue-500 bg-zinc-100 translate-y-1 shadow-none" : "border-black bg-white"
-                            )}
-                          >
-                            <div className="flex flex-col items-center gap-2">
-                              <div className={cn("w-12 h-6 rounded border-2 border-black", item.bg)} />
-                              <span className="text-center">{THEME_NAMES[language][key]}</span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                      <button 
-                        onClick={() => { setThemeMode('custom'); localStorage.setItem('launcher_themeMode', 'custom'); speak(t.customThemeOn); }}
-                        className={cn("w-full mt-6 min-h-[64px] p-4 rounded-2xl border-4 border-black font-black uppercase italic shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", themeMode === 'custom' ? "bg-purple-400" : "bg-white")}
-                      >
-                        🎨 {language === 'en-US' ? 'Create My Theme' : (language === 'es-ES' ? 'Crear Mi Tema' : 'Criar Meu Tema')}
-                      </button>
-                    </section>
-
-                    {themeMode === 'custom' && (
-                      <section className="col-span-2 mt-6 bg-zinc-100 p-4 rounded-3xl border-4 border-black">
-                        <h3 className="font-bold text-lg mb-4 text-black italic">{t.customCores}</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-2">
-                            <span className="text-xs font-black uppercase text-black">{language === 'en-US' ? 'Background' : (language === 'es-ES' ? 'Fondo' : 'Fundo')}</span>
-                            <div className="flex gap-2 flex-wrap">
-                              {['#ffffff', '#000000', '#111827', '#fef3c7', '#064e3b', '#450a0a'].map(c => (
-                                <button key={c} onClick={() => setCustomTheme({...customTheme, bg: c})} className="w-8 h-8 rounded-full border-2 border-black" style={{backgroundColor: c}} />
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <span className="text-xs font-black uppercase text-black">{language === 'en-US' ? 'Elements' : (language === 'es-ES' ? 'Elementos' : 'Elementos')}</span>
-                            <div className="flex gap-2 flex-wrap">
-                              {['#000000', '#ffffff', '#facc15', '#38bdf8', '#ef4444', '#fbbf24'].map(c => (
-                                <button key={c} onClick={() => setCustomTheme({...customTheme, fg: c, accent: c})} className="w-8 h-8 rounded-full border-2 border-black" style={{backgroundColor: c}} />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => { localStorage.setItem('launcher_customTheme', JSON.stringify(customTheme)); speak(t.colorsSaved); }}
-                          className="w-full mt-4 h-12 bg-green-400 rounded-xl border-4 border-black font-black uppercase text-black"
-                        >
-                          {t.save}
-                        </button>
-                      </section>
-                    )}
                     <button onClick={() => {
                       const newState = !voiceEnabled;
                       setVoiceEnabled(newState);
