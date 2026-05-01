@@ -79,6 +79,280 @@ export default function App() {
   const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
   
   // --- Theme States ---
+  type Language = 'pt-BR' | 'en-US' | 'es-ES';
+  const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('launcher_language') as Language) || 'pt-BR');
+
+  const TRANSLATIONS = {
+    'pt-BR': {
+      appName: "ACESSO LIVRE",
+      navBack: "VOLTAR",
+      navHelp: "AJUDA",
+      navHome: "INÍCIO",
+      navMenu: "MENU",
+      allApps: "TODOS OS APPS",
+      add: "ADICIONAR",
+      accessibility: "Acessibilidade",
+      vision: "Visão",
+      hearing: "Audição",
+      motor: "Motora",
+      help: "Ajuda",
+      close: "FECHAR",
+      cancel: "Cancelar",
+      save: "Salvar Estilo",
+      increaseText: "Aumentar Texto",
+      magnifier: "Modo Lupa",
+      readingLine: "Linha Leitura",
+      themes: "Temas de Contraste",
+      customCores: "Personalizar Cores",
+      voiceActive: "Voz Ativa",
+      voiceInactive: "Voz Desativa",
+      visualFeedback: "Feedback Visual",
+      vibrateTouch: "Vibrar ao Tocar",
+      flashAlert: "Flash Alerta",
+      trackpad: "Trackpad",
+      setup: "CONFIGURAÇÃO",
+      confirmCall: "Confirmar Ligação",
+      dwell: "Dwell",
+      medicalInfo: "Ficha Médica",
+      whereAmI: "Onde Estou?",
+      disabled: "DESATIVADO",
+      flashlightOn: "Lanterna ligada",
+      flashlightOff: "Lanterna desligada",
+      medicalTitle: "Ficha Médica de Emergência",
+      medicalBlood: "Tipo Sanguíneo",
+      medicalAllergies: "Alergias",
+      medicalMedications: "Medicamentos",
+      medicalContact: "Contato de Emergência",
+      medicalName: "Nome",
+      medicalPhone: "Fone",
+      addAppTitle: "Adicionar Aplicativo",
+      // Apps
+      phone: "TELEFONE",
+      whatsapp: "WHATSAPP",
+      camera: "CÂMERA",
+      browser: "INTERNET",
+      emergency: "EMERGÊNCIA",
+      family: "FAMÍLIA",
+      youtube: "YOUTUBE",
+      facebook: "FACEBOOK",
+      instagram: "INSTAGRAM",
+      calc: "CALCULADORA",
+      gallery: "GALERIA",
+      email: "E-MAIL",
+      maps: "MAPS",
+      // Feedback
+      opened: "Abrindo",
+      added: "Adicionado",
+      removed: "Removido com sucesso",
+      accOpened: "Menu de Acessibilidade aberto",
+      lupaOn: "Lupa ativada. Use o trackpad para navegar.",
+      themeActivated: "Tema ativado",
+      customThemeOn: "Personalização ativada",
+      colorsSaved: "Cores salvas",
+      voiceOn: "Voz ativada",
+      voiceOff: "Voz desativada",
+      visualFeedbackOn: "Feedback visual ativado",
+      visualFeedbackOff: "Feedback visual reduzido",
+      vibrating: "Vibrar ao tocar",
+      trackpadOn: "Trackpad ativado",
+      trackpadOff: "Trackpad desativado",
+      lockOn: "Edição bloqueada",
+      lockOff: "Edição liberada",
+      dwellOn: "Dwell ativado",
+      dwellOff: "Dwell desativado",
+      locating: "Consultando sua localização atual...",
+      locationUnknown: "Não consegui identificar o endereço exato agora.",
+      locationDenied: "Permissão de localização negada.",
+      confirmCallMsg: "Confirme se deseja ligar.",
+      assistantOff: "Assistente desativado",
+      assistantOn: "Ouvindo agora..."
+    },
+    'en-US': {
+      appName: "FREE ACCESS",
+      navBack: "BACK",
+      navHelp: "HELP",
+      navHome: "HOME",
+      navMenu: "MENU",
+      allApps: "ALL APPS",
+      add: "ADD",
+      accessibility: "Accessibility",
+      vision: "Vision",
+      hearing: "Hearing",
+      motor: "Motor",
+      help: "Help",
+      close: "CLOSE",
+      cancel: "Cancel",
+      save: "Save Style",
+      increaseText: "Increase Text",
+      magnifier: "Magnifier Mode",
+      readingLine: "Reading Line",
+      themes: "Contrast Themes",
+      customCores: "Custom Colors",
+      voiceActive: "Voice On",
+      voiceInactive: "Voice Off",
+      visualFeedback: "Visual Feedback",
+      vibrateTouch: "Vibrate on Touch",
+      flashAlert: "Flash Alert",
+      trackpad: "Trackpad",
+      setup: "SETUP MODE",
+      confirmCall: "Confirm Call",
+      dwell: "Dwell",
+      medicalInfo: "Medical Info",
+      whereAmI: "Where Am I?",
+      disabled: "DISABLED",
+      flashlightOn: "Flashlight On",
+      flashlightOff: "Flashlight Off",
+      medicalTitle: "Emergency Medical Info",
+      medicalBlood: "Blood Type",
+      medicalAllergies: "Allergies",
+      medicalMedications: "Medications",
+      medicalContact: "Emergency Contact",
+      medicalName: "Name",
+      medicalPhone: "Phone",
+      addAppTitle: "Add Application",
+      // Apps
+      phone: "PHONE",
+      whatsapp: "WHATSAPP",
+      camera: "CAMERA",
+      browser: "INTERNET",
+      emergency: "EMERGENCY",
+      family: "FAMILY",
+      youtube: "YOUTUBE",
+      facebook: "FACEBOOK",
+      instagram: "INSTAGRAM",
+      calc: "CALCULATOR",
+      gallery: "GALLERY",
+      email: "E-MAIL",
+      maps: "MAPS",
+      // Feedback
+      opened: "Opening",
+      added: "Added",
+      removed: "Successfully removed",
+      accOpened: "Accessibility menu opened",
+      lupaOn: "Magnifier on. Use trackpad to navigate.",
+      themeActivated: "Theme activated",
+      customThemeOn: "Customization activated",
+      colorsSaved: "Colors saved",
+      voiceOn: "Voice enabled",
+      voiceOff: "Voice disabled",
+      visualFeedbackOn: "Visual feedback enabled",
+      visualFeedbackOff: "Visual feedback reduced",
+      vibrating: "Vibrate on touch",
+      trackpadOn: "Trackpad enabled",
+      trackpadOff: "Trackpad disabled",
+      lockOn: "Editing locked",
+      lockOff: "Editing unlocked",
+      dwellOn: "Dwell enabled",
+      dwellOff: "Dwell disabled",
+      locating: "Checking your current location...",
+      locationUnknown: "Could not identify exact address now.",
+      locationDenied: "Location permission denied.",
+      confirmCallMsg: "Please confirm call.",
+      assistantOff: "Assistant off",
+      assistantOn: "Listening now..."
+    },
+    'es-ES': {
+      appName: "ACCESO LIBRE",
+      navBack: "VOLVER",
+      navHelp: "AYUDA",
+      navHome: "INICIO",
+      navMenu: "MENÚ",
+      allApps: "TODAS APPS",
+      add: "AÑADIR",
+      accessibility: "Accesibilidad",
+      vision: "Visión",
+      hearing: "Audición",
+      motor: "Motora",
+      help: "Ayuda",
+      close: "CERRAR",
+      cancel: "Cancelar",
+      save: "Guardar Estilo",
+      increaseText: "Aumentar Texto",
+      magnifier: "Modo Lupa",
+      readingLine: "Línea Lectura",
+      themes: "Temas Contraste",
+      customCores: "Personalizar Colores",
+      voiceActive: "Voz Activa",
+      voiceInactive: "Voz Inactiva",
+      visualFeedback: "Feedback Visual",
+      vibrateTouch: "Vibrar al Tocar",
+      flashAlert: "Flash Alerta",
+      trackpad: "Trackpad",
+      setup: "MODO CONFIG",
+      confirmCall: "Confirmar Llamada",
+      dwell: "Dwell",
+      medicalInfo: "Ficha Médica",
+      whereAmI: "¿Dónde Estoy?",
+      disabled: "DESACTIVADO",
+      flashlightOn: "Linterna encendida",
+      flashlightOff: "Linterna apagada",
+      medicalTitle: "Ficha Médica de Emergencia",
+      medicalBlood: "Grupo Sanguíneo",
+      medicalAllergies: "Alergias",
+      medicalMedications: "Medicamentos",
+      medicalContact: "Contacto Emergencia",
+      medicalName: "Nombre",
+      medicalPhone: "Tel",
+      addAppTitle: "Añadir Aplicación",
+      // Apps
+      phone: "TELÉFONO",
+      whatsapp: "WHATSAPP",
+      camera: "CÁMARA",
+      browser: "INTERNET",
+      emergency: "EMERGENCIA",
+      family: "FAMILIA",
+      youtube: "YOUTUBE",
+      facebook: "FACEBOOK",
+      instagram: "INSTAGRAM",
+      calc: "CALCULADORA",
+      gallery: "GALERÍA",
+      email: "E-MAIL",
+      maps: "MAPS",
+      // Feedback
+      opened: "Abriendo",
+      added: "Añadido",
+      removed: "Eliminado con éxito",
+      accOpened: "Menú de accesibilidad abierto",
+      lupaOn: "Lupa activa. Usa el trackpad.",
+      themeActivated: "Tema activado",
+      customThemeOn: "Personalización activa",
+      colorsSaved: "Colores guardados",
+      voiceOn: "Voz activa",
+      voiceOff: "Voz inactiva",
+      visualFeedbackOn: "Feedback visual activo",
+      visualFeedbackOff: "Feedback visual reducido",
+      vibrating: "Vibrar al tocar",
+      trackpadOn: "Trackpad activo",
+      trackpadOff: "Trackpad inactivo",
+      lockOn: "Edición bloqueada",
+      lockOff: "Edición liberada",
+      dwellOn: "Dwell activo",
+      dwellOff: "Dwell inactivo",
+      locating: "Consultando su ubicación...",
+      locationUnknown: "No pude identificar la dirección.",
+      locationDenied: "Permiso denegado.",
+      confirmCallMsg: "Confirme la llamada.",
+      assistantOff: "Asistente inactivo",
+      assistantOn: "Escuchando..."
+    }
+  };
+
+  const t = TRANSLATIONS[language];
+
+  const changeLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('launcher_language', lang);
+    triggerHaptic([50]);
+    // Synthesis check happens in speak()
+  };
+
+  useEffect(() => {
+    // Speak switch notice when language changes
+    const msg = language === 'en-US' ? 'Language switched to English' : language === 'es-ES' ? 'Idioma cambiado a español' : 'Idioma alterado para Português';
+    speak(msg);
+  }, [language]);
+
+  // --- Theme States ---
   type ThemePreset = 'default' | 'classic' | 'inverted' | 'night' | 'solar' | 'custom';
   const [themeMode, setThemeMode] = useState<ThemePreset>(() => {
     const saved = localStorage.getItem('launcher_themeMode');
@@ -100,6 +374,12 @@ export default function App() {
     custom: { bg: '', text: '', cardBorder: '', shadow: '', name: 'Customizado' }
   };
 
+  const THEME_NAMES: Record<Language, Record<ThemePreset, string>> = {
+    'pt-BR': { default: 'Padrão', classic: 'Clássico', inverted: 'Invertido', night: 'Noturno', solar: 'Solar', custom: 'Customizado' },
+    'en-US': { default: 'Default', classic: 'Classic', inverted: 'Inverted', night: 'Night', solar: 'Solar', custom: 'Custom' },
+    'es-ES': { default: 'Predeterminado', classic: 'Clásico', inverted: 'Invertido', night: 'Nocturno', solar: 'Solar', custom: 'Personalizado' }
+  };
+
   const getThemeStyles = () => {
     if (themeMode === 'custom') {
       return {
@@ -112,13 +392,17 @@ export default function App() {
     const t = THEMES[themeMode] || THEMES.default;
     return {
       background: {}, // Handled by tailwind classes
-      text: {},
+      text: { color: 'inherit' }, // Use classes for non-custom
       border: {},
       shadowColor: t.shadow
     };
   };
 
   const currentThemeStyles = getThemeStyles();
+  
+  const iconThemeColor = themeMode === 'custom' 
+    ? customTheme.fg 
+    : (themeMode === 'default' ? 'currentColor' : undefined); // undefined lets tailwind classes handle it
   
   // --- UI States ---
   const [showAccessModal, setShowAccessModal] = useState(false);
@@ -155,7 +439,7 @@ export default function App() {
     if (voiceEnabled && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'pt-BR';
+      utterance.lang = language;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -167,37 +451,37 @@ export default function App() {
   };
 
   const handleWhereAmI = async () => {
-    speak("Consultando sua localização atual...");
+    speak(t.locating);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
           const data = await res.json();
-          const address = data.display_name || "Local desconhecido";
+          const address = data.display_name || (language === 'pt-BR' ? "Local desconhecido" : (language === 'es-ES' ? "Ubicación desconocida" : "Unknown location"));
           setLocationText(address);
-          speak(`Você está na: ${address}`);
+          speak(`${language === 'en-US' ? 'You are at' : (language === 'es-ES' ? 'Estás en' : 'Você está na')}: ${address}`);
         } catch (err) {
-          speak("Não consegui identificar o endereço exato agora.");
+          speak(t.locationUnknown);
         }
-      }, () => speak("Permissão de localização negada."));
+      }, () => speak(t.locationDenied));
     }
   };
 
   // --- App Presets & Management ---
   const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link', value: string }> = {
-    'phone': { label: 'TELEFONE', color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'intent', value: 'tel:' },
-    'whatsapp': { label: 'WHATSAPP', color: 'bg-[#059669]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'intent://send#Intent;package=com.whatsapp;scheme=whatsapp;end' },
-    'camera': { label: 'CÂMERA', color: 'bg-zinc-400', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
-    'browser': { label: 'INTERNET', color: 'bg-blue-500', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
-    'emergency': { label: 'EMERGÊNCIA', color: 'bg-[#ef4444]', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'intent', value: 'tel:192' },
-    'family': { label: 'FAMÍLIA', color: 'bg-[#a855f7]', icon: <Home size={52} strokeWidth={3} />, type: 'link', value: '#' },
-    'youtube': { label: 'YOUTUBE', color: 'bg-red-500', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
-    'facebook': { label: 'FACEBOOK', color: 'bg-blue-600', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
-    'instagram': { label: 'INSTAGRAM', color: 'bg-pink-500', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
-    'calc': { label: 'CALCULADORA', color: 'bg-zinc-600', icon: <Calculator size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.calculator2' },
-    'gallery': { label: 'GALERIA', color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'intent:android.intent.action.VIEW;type=image/*;end' },
-    'email': { label: 'E-MAIL', color: 'bg-white', icon: <Mail size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.gm' },
-    'maps': { label: 'MAPS', color: 'bg-green-500', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
+    'phone': { label: t.phone, color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'intent', value: 'tel:' },
+    'whatsapp': { label: t.whatsapp, color: 'bg-[#059669]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'intent://send#Intent;package=com.whatsapp;scheme=whatsapp;end' },
+    'camera': { label: t.camera, color: 'bg-zinc-400', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
+    'browser': { label: t.browser, color: 'bg-blue-500', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
+    'emergency': { label: t.emergency, color: 'bg-[#ef4444]', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'intent', value: 'tel:192' },
+    'family': { label: t.family, color: 'bg-[#a855f7]', icon: <Home size={52} strokeWidth={3} />, type: 'link', value: '#' },
+    'youtube': { label: t.youtube, color: 'bg-red-500', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
+    'facebook': { label: t.facebook, color: 'bg-blue-600', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
+    'instagram': { label: t.instagram, color: 'bg-pink-500', icon: <Eye size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
+    'calc': { label: t.calc, color: 'bg-zinc-600', icon: <Calculator size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.calculator2' },
+    'gallery': { label: t.gallery, color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'intent:android.intent.action.VIEW;type=image/*;end' },
+    'email': { label: t.email, color: 'bg-white', icon: <Mail size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.gm' },
+    'maps': { label: t.maps, color: 'bg-green-500', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
   };
 
   const [visibleAppIds, setVisibleAppIds] = useState<string[]>(() => {
@@ -211,7 +495,7 @@ export default function App() {
       setVisibleAppIds(newIds);
       localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
       triggerHaptic([50]);
-      speak(`Adicionado ${PRESET_APPS[id].label}`);
+      speak(`${t.added} ${PRESET_APPS[id].label}`);
     }
     setShowAddAppModal(false);
   };
@@ -221,7 +505,7 @@ export default function App() {
     setVisibleAppIds(newIds);
     localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
     triggerHaptic([100]);
-    speak(`Removido com sucesso`);
+    speak(t.removed);
   };
 
   const handleAppAction = (id: string) => {
@@ -229,13 +513,13 @@ export default function App() {
     if (!app) return;
 
     triggerHaptic([50]);
-    speak(`Abrindo ${app.label}`);
+    speak(`${t.opened} ${app.label}`);
 
     if (app.type === 'link') {
       window.location.href = app.value;
     } else {
       if (app.value.startsWith('tel:')) {
-        if (confirmCall) speak("Confirme se deseja ligar.");
+        if (confirmCall) speak(t.confirmCallMsg);
         window.location.href = app.value;
       } else {
         window.location.href = `intent://#Intent;package=${app.value};scheme=https;end`;
@@ -253,11 +537,11 @@ export default function App() {
     })),
     // Fixed "Todos os Apps" button
     { 
-      id: 'app-all', label: 'TODOS OS APPS', color: 'bg-zinc-100', 
+      id: 'app-all', label: t.allApps, color: 'bg-zinc-100', 
       icon: <LayoutGrid size={52} strokeWidth={3} />,
       action: () => { 
         triggerHaptic([50]);
-        speak("Abrindo todos os aplicativos");
+        speak(t.opened + " " + t.allApps);
         window.location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
       }
     }
@@ -367,42 +651,70 @@ export default function App() {
       {/* Reading Line Overlay */}
       {readingLine && (
         <motion.div 
-          animate={{ top: `calc(80px + ${cursorY.get()}% * (100vh - 80px - 96px - 32vh))` }}
-          className="fixed left-0 right-0 h-10 bg-yellow-400/40 border-y-4 border-black z-[50] pointer-events-none transition-all duration-75"
+          animate={{ top: `calc(120px + ${cursorY.get()}% * (100vh - 120px - 96px - 32vh))` }}
+          className={cn(
+            "fixed left-0 right-0 h-10 border-y-4 z-[50] pointer-events-none transition-all duration-75",
+            themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-yellow-400/40 border-black" : "bg-white/20")
+          )}
+          style={themeMode === 'custom' ? { backgroundColor: `${customTheme.fg}40`, borderColor: customTheme.fg } : (themeMode !== 'default' ? { borderColor: 'currentColor' } : {})}
         />
       )}
 
       {/* Header */}
       <header className={cn(
-        "h-20 flex-shrink-0 border-b-[4px] flex items-center justify-between px-6 z-[200]",
+        "h-[120px] flex-shrink-0 border-b-[4px] relative px-6 z-[200] flex flex-col justify-center items-center shadow-[0px_4px_10px_0px_rgba(0,0,0,0.1)]",
         themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
         themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : ""
       )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
-        <div className="flex items-center gap-3 overflow-hidden">
+        
+        {/* Lado Esquerdo: Acessibilidade e Idiomas */}
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-3">
           <button 
             id="access-btn"
-            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak("Menu de Acessibilidade aberto"); }}
+            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak(t.accOpened); }}
             className={cn(
-              "w-12 h-12 flex-shrink-0 mt-1 bg-yellow-400 rounded-2xl border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
-              themeMode === 'custom' ? "bg-white border-black" : "bg-yellow-400 border-black"
+              "w-14 h-14 flex-shrink-0 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
+              themeMode === 'custom' ? "bg-white border-black" : (themeMode === 'default' ? "bg-yellow-400 border-black" : "bg-transparent")
+            )}
+            style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`, color: customTheme.fg} : {}}
+          >
+            <Accessibility size={32} strokeWidth={3} />
+          </button>
+          
+          <div className="hidden sm:flex flex-col gap-1 items-center bg-black/5 p-1 rounded-xl border-2 border-black/10">
+            <button id="lang-pt" onClick={() => changeLanguage('pt-BR')} className={cn("text-lg hover:scale-110", language === 'pt-BR' && "scale-125")} title="Português">🇧🇷</button>
+            <button id="lang-en" onClick={() => changeLanguage('en-US')} className={cn("text-lg hover:scale-110", language === 'en-US' && "scale-125")} title="English">🇺🇸</button>
+            <button id="lang-es" onClick={() => changeLanguage('es-ES')} className={cn("text-lg hover:scale-110", language === 'es-ES' && "scale-125")} title="Español">🇪🇸</button>
+          </div>
+        </div>
+
+        {/* Centro: RELÓGIO E DATA (Destaque Principal) */}
+        <div className="flex flex-col items-center justify-center text-center">
+          <span className={cn("font-black text-5xl sm:text-7xl tracking-tighter leading-none mb-1")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
+            {currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <span className={cn("font-black text-[12px] sm:text-sm uppercase tracking-widest opacity-80")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
+            {currentTime.toLocaleDateString(language, { weekday: 'long', day: '2-digit', month: 'long' })}
+          </span>
+        </div>
+
+        {/* Lado Direito: Settings e Identidade */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-4">
+          <div className="hidden lg:flex flex-col items-end opacity-40">
+            <h1 className="font-black italic text-sm tracking-tighter uppercase leading-none" style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>{t.appName}</h1>
+          </div>
+          <button 
+            id="settings-btn"
+            onClick={() => triggerHaptic([50])}
+            className={cn(
+              "w-14 h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
+              themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
             )}
             style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
           >
-            <Accessibility size={28} strokeWidth={3} />
+            <Settings size={32} strokeWidth={2.5} style={themeMode === 'custom' ? {color: customTheme.fg} : {}} />
           </button>
-          <h1 className="font-black italic text-xl sm:text-2xl tracking-tighter uppercase leading-none truncate" style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>ACESSO LIVRE</h1>
         </div>
-        <button 
-          id="settings-btn"
-          onClick={() => triggerHaptic([50])}
-          className={cn(
-            "w-12 h-12 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
-            themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
-          )}
-          style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
-        >
-          <Settings size={28} strokeWidth={2.5} style={themeMode === 'custom' ? {color: customTheme.fg} : {}} />
-        </button>
       </header>
 
       {/* 2. ÁREA CENTRAL DINÂMICA (Scrollable Grid) */}
@@ -441,8 +753,8 @@ export default function App() {
                 } : {})
               }}
             >
-              <div style={themeMode === 'custom' ? { color: customTheme.fg } : {}}>{app.icon}</div>
-              <span className="font-black text-sm sm:text-lg uppercase px-2 text-center" style={themeMode === 'custom' ? { color: customTheme.fg } : {}}>{app.label}</span>
+              <div style={themeMode === 'custom' ? { color: customTheme.fg } : { color: 'inherit' }}>{app.icon}</div>
+              <span className="font-black text-sm sm:text-lg uppercase px-2 text-center" style={themeMode === 'custom' ? { color: customTheme.fg } : { color: 'inherit' }}>{app.label}</span>
               {!lockEdit && app.id !== 'app-all' && (
                 <button 
                   id={`del-${app.id}`}
@@ -466,7 +778,7 @@ export default function App() {
               )}
             >
               <Plus size={64} strokeWidth={3} />
-              <span className="font-black text-sm uppercase">Adicionar</span>
+              <span className="font-black text-sm uppercase">{t.add}</span>
             </button>
           )}
           </div>
@@ -477,13 +789,14 @@ export default function App() {
       <nav className={cn(
         "h-24 flex-shrink-0 border-y-[4px] grid grid-cols-4 z-[100]",
         themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
-        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : ""
-      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "",
+        themeMode !== 'custom' ? (THEMES[themeMode]?.text || THEMES.default.text) : ""
+      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg} : {}}>
         {[
-          { id: 'nav-back', label: 'VOLTAR', icon: <ArrowLeft size={32} /> },
-          { id: 'nav-help', label: 'AJUDA', icon: <Search size={32} /> },
-          { id: 'nav-home', label: 'INÍCIO', icon: <Home size={32} /> },
-          { id: 'nav-menu', label: 'MENU', icon: <Menu size={32} /> },
+          { id: 'nav-back', label: t.navBack, icon: <ArrowLeft size={32} /> },
+          { id: 'nav-help', label: t.navHelp, icon: <Search size={32} /> },
+          { id: 'nav-home', label: t.navHome, icon: <Home size={32} /> },
+          { id: 'nav-menu', label: t.navMenu, icon: <Menu size={32} /> },
         ].map(item => (
           <button 
             key={item.id} 
@@ -500,9 +813,9 @@ export default function App() {
         ))}
       </nav>
 
-      {/* Assistive Controls Section */}
+      {/* Assistive Controls Section (Trackpad / Powe Buttons) */}
       <div 
-        className={cn("h-[32%] flex-shrink-0 grid grid-cols-[110px_1fr_110px] border-b-[4px] z-[100]", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#e5e7eb]" : (THEMES[themeMode]?.bg || THEMES.default.bg)))}
+        className={cn("h-[32%] flex-shrink-0 grid grid-cols-[140px_1fr_140px] border-b-[4px] z-[100]", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#e5e7eb]" : (THEMES[themeMode]?.bg || THEMES.default.bg)))}
         style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
       >
         <div 
@@ -511,15 +824,15 @@ export default function App() {
         >
           <button 
             id="mic-btn" 
-            onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? "Assistente desativado" : "Ouvindo agora..."); }} 
-            className={cn("w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", isVoiceActive ? "bg-red-400 border-black" : "bg-white border-black")}
+            onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
+            className={cn("w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", isVoiceActive ? "bg-red-400 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent"))}
             style={{
-              boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : 'rgba(0,0,0,1)'}`,
-              borderColor: themeMode === 'custom' ? customTheme.fg : undefined,
-              color: isVoiceActive ? 'white' : (themeMode === 'custom' ? customTheme.fg : 'black')
+              boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
+              borderColor: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'black' : 'currentColor'),
+              color: isVoiceActive ? 'white' : (themeMode === 'custom' ? customTheme.fg : undefined)
             }}
           >
-            {isVoiceActive ? <Mic size={36} /> : <MicOff size={36} />}
+            {isVoiceActive ? <Mic size={44} /> : <MicOff size={44} />}
           </button>
         </div>
         <div 
@@ -534,47 +847,45 @@ export default function App() {
           onClick={trackpadEnabled ? handleClick : undefined}
         >
           {trackpadEnabled ? (
-            <div className="flex flex-col items-center justify-center pointer-events-none">
-              <span className={cn("font-black text-4xl sm:text-6xl tracking-tighter leading-none")} style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>
-                {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-              <span className={cn("font-black text-[10px] sm:text-xs uppercase opacity-70 mt-1")} style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>
-                {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-              </span>
+            <div className="flex flex-col items-center justify-center pointer-events-none gap-2">
+              {/* Espaço limpo para o trackpad (removido relógio) */}
+              <div className="w-16 h-1 bg-black/10 rounded-full" />
+              <span className="font-black text-[10px] uppercase opacity-20 tracking-widest">{t.trackpad}</span>
             </div>
           ) : (
-            <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4 opacity-30")}>
-              DESATIVADO
+            <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4 opacity-40")} style={themeMode === 'custom' ? {color: customTheme.fg} : {color: 'inherit'}}>
+              {t.disabled}
             </span>
           )}
           
           {trackpadEnabled && dwellEnabled && dwellProgress > 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <svg className="w-32 h-32 rotate-[-90deg]">
-                <circle cx="64" cy="64" r="60" fill="none" stroke={themeMode === 'custom' ? customTheme.fg : "#fbbf24"} strokeWidth="8" strokeDasharray="377" strokeDashoffset={377 - (377 * dwellProgress) / 100} className="transition-all duration-75" />
+                <circle cx="64" cy="64" r="60" fill="none" stroke={themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? "#fbbf24" : "currentColor")} strokeWidth="8" strokeDasharray="377" strokeDashoffset={377 - (377 * dwellProgress) / 100} className="transition-all duration-75" />
               </svg>
             </div>
           )}
         </div>
-        <div className={cn("border-l-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (THEMES[themeMode]?.bg || THEMES.default.bg), themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "")} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+        <div className={cn("border-l-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)), themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || THEMES.default.cardBorder) : "")} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
           <button 
             id="flashlight-btn" 
             onClick={() => { 
               const newState = !flashlightOn;
               setFlashlightOn(newState); 
               triggerHaptic([50, 100]); 
-              speak(newState ? "Lanterna ligada" : "Lanterna desligada");
+              speak(newState ? t.flashlightOn : t.flashlightOff);
             }} 
             className={cn(
-              "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
-              flashlightOn ? "bg-yellow-400 border-black" : "bg-gray-100 border-black text-black"
+              "w-20 h-20 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
+              flashlightOn ? "bg-yellow-400 border-black text-black" : (themeMode === 'default' ? "bg-gray-100 border-black text-black" : "bg-transparent")
             )}
             style={{
-              borderColor: themeMode === 'custom' ? customTheme.fg : undefined,
-              boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : 'rgba(0,0,0,1)'}`
+              borderColor: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'black' : 'currentColor'),
+              boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
+              color: (flashlightOn || themeMode === 'default') ? 'black' : (themeMode === 'custom' ? customTheme.fg : 'inherit')
             }}
           >
-            <Flashlight size={36} />
+            <Flashlight size={44} />
           </button>
         </div>
       </div>
@@ -600,35 +911,43 @@ export default function App() {
       <AnimatePresence>
         {showAccessModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} className={cn("w-full max-w-2xl max-h-[92vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden bg-white border-black text-black")}>
-              <div className="bg-yellow-400 p-6 border-b-[6px] border-black flex items-center justify-between">
+            <motion.div 
+              initial={{ scale: 0.9, y: 50 }} 
+              animate={{ scale: 1, y: 0 }} 
+              className={cn(
+                "w-full max-w-2xl max-h-[92vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden transition-colors",
+                themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
+              )}
+              style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
+            >
+              <div className={cn("p-6 border-b-[6px] flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 border-black text-black" : "bg-transparent border-current"))}>
                 <div className="flex items-center gap-3">
-                  <Accessibility size={40} className="text-black" />
-                  <h2 className="font-black text-xl sm:text-2xl uppercase text-black italic">Acessibilidade</h2>
+                  <Accessibility size={40} />
+                  <h2 className="font-black text-xl sm:text-2xl uppercase italic">{t.accessibility}</h2>
                 </div>
-                <button onClick={() => setShowAccessModal(false)} className="bg-white p-3 rounded-2xl border-[4px] border-black active:translate-y-1"><X size={32} className="text-black" /></button>
+                <button onClick={() => setShowAccessModal(false)} className={cn("p-3 rounded-2xl border-[4px] active:translate-y-1", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black text-black")}><X size={32} /></button>
               </div>
               
               <div className="flex-1 p-6 overflow-y-auto space-y-8 pb-32">
                 {/* VISÃO */}
                 <section>
-                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Eye size={16}/> Visão</h3>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Eye size={16}/> {t.vision}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("h-28 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">Aumentar Texto</span></button>
-                    <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak("Lupa ativada. Use o trackpad para navegar."); }} className="h-28 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">Modo Lupa</span></button>
-                    <button onClick={() => setReadingLine(!readingLine)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", readingLine ? "bg-yellow-400 text-black shadow-none" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px]">Linha Leitura</span></button>
+                    <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("h-28 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.increaseText}</span></button>
+                    <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak(t.lupaOn); }} className="h-28 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.magnifier}</span></button>
+                    <button onClick={() => setReadingLine(!readingLine)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", readingLine ? "bg-yellow-400 text-black shadow-none" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px]">{t.readingLine}</span></button>
                     
                     <section className="col-span-3 mt-6">
-                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2 px-2 text-black"><Palette size={24} /> Temas de Contraste</h3>
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2 px-2 text-black"><Palette size={24} /> {t.themes}</h3>
                       <div className="grid grid-cols-2 gap-3">
-                        {(Object.entries(THEMES) as [ThemePreset, any][]).filter(([k]) => k !== 'custom').map(([key, t]) => (
+                        {(Object.entries(THEMES) as [ThemePreset, any][]).filter(([k]) => k !== 'custom').map(([key, item]) => (
                           <button 
                             key={key} 
                             onClick={() => {
                               setThemeMode(key);
                               localStorage.setItem('launcher_themeMode', key);
                               triggerHaptic([50]);
-                              speak(`Tema ${t.name} ativado`);
+                              speak(`${t.themeActivated}: ${THEME_NAMES[language][key]}`);
                             }}
                             className={cn(
                               "h-24 rounded-xl border-[3px] flex items-center justify-center font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
@@ -636,26 +955,26 @@ export default function App() {
                             )}
                           >
                             <div className="flex flex-col items-center gap-1">
-                              <div className={cn("w-12 h-6 rounded border-2 border-black", t.bg)} />
-                              {t.name}
+                              <div className={cn("w-12 h-6 rounded border-2 border-black", item.bg)} />
+                              {THEME_NAMES[language][key]}
                             </div>
                           </button>
                         ))}
                       </div>
                       <button 
-                        onClick={() => { setThemeMode('custom'); localStorage.setItem('launcher_themeMode', 'custom'); speak("Personalização ativada"); }}
+                        onClick={() => { setThemeMode('custom'); localStorage.setItem('launcher_themeMode', 'custom'); speak(t.customThemeOn); }}
                         className={cn("w-full mt-4 h-16 rounded-2xl border-4 border-black font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", themeMode === 'custom' ? "bg-purple-400" : "bg-white")}
                       >
-                        🎨 Criar Meu Tema
+                        🎨 {language === 'en-US' ? 'Create My Theme' : (language === 'es-ES' ? 'Crear Mi Tema' : 'Criar Meu Tema')}
                       </button>
                     </section>
 
                     {themeMode === 'custom' && (
                       <section className="col-span-3 mt-6 bg-zinc-100 p-4 rounded-3xl border-4 border-black">
-                        <h3 className="font-bold text-lg mb-4 text-black italic">Personalizar Cores</h3>
+                        <h3 className="font-bold text-lg mb-4 text-black italic">{t.customCores}</h3>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col gap-2">
-                            <span className="text-xs font-black uppercase text-black">Fundo</span>
+                            <span className="text-xs font-black uppercase text-black">{language === 'en-US' ? 'Background' : (language === 'es-ES' ? 'Fondo' : 'Fundo')}</span>
                             <div className="flex gap-2 flex-wrap">
                               {['#ffffff', '#000000', '#111827', '#fef3c7', '#064e3b', '#450a0a'].map(c => (
                                 <button key={c} onClick={() => setCustomTheme({...customTheme, bg: c})} className="w-8 h-8 rounded-full border-2 border-black" style={{backgroundColor: c}} />
@@ -663,7 +982,7 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <span className="text-xs font-black uppercase text-black">Elementos</span>
+                            <span className="text-xs font-black uppercase text-black">{language === 'en-US' ? 'Elements' : (language === 'es-ES' ? 'Elementos' : 'Elementos')}</span>
                             <div className="flex gap-2 flex-wrap">
                               {['#000000', '#ffffff', '#facc15', '#38bdf8', '#ef4444', '#fbbf24'].map(c => (
                                 <button key={c} onClick={() => setCustomTheme({...customTheme, fg: c, accent: c})} className="w-8 h-8 rounded-full border-2 border-black" style={{backgroundColor: c}} />
@@ -672,10 +991,10 @@ export default function App() {
                           </div>
                         </div>
                         <button 
-                          onClick={() => { localStorage.setItem('launcher_customTheme', JSON.stringify(customTheme)); speak("Cores salvas"); }}
+                          onClick={() => { localStorage.setItem('launcher_customTheme', JSON.stringify(customTheme)); speak(t.colorsSaved); }}
                           className="w-full mt-4 h-12 bg-green-400 rounded-xl border-4 border-black font-black uppercase text-black"
                         >
-                          Salvar Estilo
+                          {t.save}
                         </button>
                       </section>
                     )}
@@ -685,87 +1004,85 @@ export default function App() {
                       localStorage.setItem('launcher_voiceEnabled', String(newState));
                       triggerHaptic([50]);
                       if (newState) {
-                        const utterance = new SpeechSynthesisUtterance("Voz ativada");
-                        utterance.lang = 'pt-BR';
-                        window.speechSynthesis.speak(utterance);
+                        speak(t.voiceOn);
                       }
                     }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", voiceEnabled ? "bg-green-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
                       {voiceEnabled ? <Volume2 size={32} /> : <ZapOff size={32} />}
-                      <span className="font-black uppercase text-[10px]">{voiceEnabled ? "Voz Ativa" : "Voz Desativa"}</span>
+                      <span className="font-black uppercase text-[10px]">{voiceEnabled ? t.voiceActive : t.voiceInactive}</span>
                     </button>
                     <button onClick={() => {
                       const newState = !enhancedFeedback;
                       setEnhancedFeedback(newState);
                       localStorage.setItem('launcher_enhancedFeedback', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? "Feedback visual ativado" : "Feedback visual reduzido");
+                      speak(newState ? t.visualFeedbackOn : t.visualFeedbackOff);
                     }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", enhancedFeedback ? "bg-purple-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
                       <Palette size={32} />
-                      <span className="font-black uppercase text-[10px]">Feedback Visual</span>
+                      <span className="font-black uppercase text-[10px]">{t.visualFeedback}</span>
                     </button>
                   </div>
                 </section>
 
                 {/* AUDIÇÃO */}
                 <section>
-                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Volume2 size={16}/> Audição</h3>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Volume2 size={16}/> {t.hearing}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setVibrateOnTouch(!vibrateOnTouch)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", vibrateOnTouch ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><Smartphone size={32} /><span className="font-black uppercase text-[10px]">Vibrar ao Tocar</span></button>
-                    <button onClick={handleFlash} className="h-28 rounded-2xl border-[4px] border-black bg-yellow-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Zap size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">Flash Alerta</span></button>
+                    <button onClick={() => setVibrateOnTouch(!vibrateOnTouch)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", vibrateOnTouch ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><Smartphone size={32} /><span className="font-black uppercase text-[10px]">{t.vibrateTouch}</span></button>
+                    <button onClick={handleFlash} className="h-28 rounded-2xl border-[4px] border-black bg-yellow-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Zap size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.flashAlert}</span></button>
                   </div>
                 </section>
 
                 {/* MOTORA */}
                 <section>
-                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Smartphone size={16}/> Motora</h3>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Smartphone size={16}/> {t.motor}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => {
                       const newState = !trackpadEnabled;
                       setTrackpadEnabled(newState);
                       localStorage.setItem('launcher_trackpadEnabled', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? "Trackpad ativado" : "Trackpad desativado");
+                      speak(newState ? t.trackpadOn : t.trackpadOff);
                     }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", trackpadEnabled ? "bg-yellow-400 text-black shadow-none" : "bg-gray-100 text-black")}>
                       <Maximize2 size={32} />
-                      <span className="font-black uppercase text-[10px]">{trackpadEnabled ? "Trackpad On" : "Trackpad Off"}</span>
+                      <span className="font-black uppercase text-[10px]">{trackpadEnabled ? `${t.trackpad} On` : `${t.trackpad} Off`}</span>
                     </button>
                     <button onClick={() => {
                       const newState = !lockEdit;
                       setLockEdit(newState);
                       localStorage.setItem('launcher_lockEdit', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? "Edição bloqueada" : "Edição liberada");
+                      speak(newState ? t.lockOn : t.lockOff);
                     }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", lockEdit ? "bg-red-400 text-white shadow-none" : "bg-zinc-100 text-black")}>
                       {lockEdit ? <Lock size={32} /> : <Unlock size={32} />}
-                      <span className="font-black uppercase text-[10px]">{lockEdit ? "CONFIGURAÇÃO OFF" : "CONFIGURAÇÃO ON"}</span>
+                      <span className="font-black uppercase text-[10px]">{lockEdit ? `${t.setup} OFF` : `${t.setup} ON`}</span>
                     </button>
-                    <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", confirmCall ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">Confirmar Ligação</span></button>
+                    <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", confirmCall ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">{t.confirmCall}</span></button>
                     <button onClick={() => {
                       const newState = !dwellEnabled;
                       setDwellEnabled(newState);
                       localStorage.setItem('launcher_dwellEnabled', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? "Dwell ativado" : "Dwell desativado");
+                      speak(newState ? t.dwellOn : t.dwellOff);
                     }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", dwellEnabled ? "bg-cyan-400 text-black shadow-none" : "bg-gray-100 text-black")}>
                       <Zap size={32} />
-                      <span className="font-black uppercase text-[10px]">{dwellEnabled ? "Dwell On" : "Dwell Off"}</span>
+                      <span className="font-black uppercase text-[10px]">{dwellEnabled ? `${t.dwell} On` : `${t.dwell} Off`}</span>
                     </button>
                   </div>
                 </section>
 
                 {/* AJUDA */}
                 <section>
-                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><HelpCircle size={16}/> Ajuda</h3>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><HelpCircle size={16}/> {t.help}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setShowMedicalInfo(true)} className="h-28 rounded-2xl border-[4px] border-black bg-red-500 text-white flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><HeartPulse size={32}/><span className="font-black uppercase text-[10px]">Ficha Médica</span></button>
-                    <button onClick={handleWhereAmI} className="h-28 rounded-2xl border-[4px] border-black bg-purple-400 text-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><MapPin size={32}/><span className="font-black uppercase text-[10px]">Onde Estou?</span></button>
+                    <button onClick={() => setShowMedicalInfo(true)} className="h-28 rounded-2xl border-[4px] border-black bg-red-500 text-white flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><HeartPulse size={32}/><span className="font-black uppercase text-[10px]">{t.medicalInfo}</span></button>
+                    <button onClick={handleWhereAmI} className="h-28 rounded-2xl border-[4px] border-black bg-purple-400 text-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><MapPin size={32}/><span className="font-black uppercase text-[10px]">{t.whereAmI}</span></button>
                   </div>
                   {locationText && <div className="mt-4 p-4 bg-yellow-100 border-4 border-black font-black text-[12px] uppercase text-black leading-tight shadow-md">{locationText}</div>}
                 </section>
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t-[6px] border-black z-30">
-                <button onClick={() => setShowAccessModal(false)} className="w-full h-20 bg-[#ef4444] text-white rounded-[24px] border-[4px] border-black font-black uppercase text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">FECHAR</button>
+                <button onClick={() => setShowAccessModal(false)} className="w-full h-20 bg-[#ef4444] text-white rounded-[24px] border-[4px] border-black font-black uppercase text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
@@ -776,26 +1093,47 @@ export default function App() {
       <AnimatePresence>
         {showAddAppModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className={cn("w-full max-w-lg rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden", isDarkMode || highContrastMode ? "bg-zinc-800 border-white" : "bg-white border-black")}>
-              <div className="bg-blue-400 p-6 border-b-[6px] border-black flex items-center justify-between text-black">
-                <h2 className="font-black text-2xl uppercase italic">Adicionar Aplicativo</h2>
-                <button onClick={() => setShowAddAppModal(false)} className="bg-white p-2 rounded-xl border-4 border-black"><X size={24}/></button>
+            <motion.div 
+              initial={{ scale: 0.9 }} 
+              animate={{ scale: 1 }} 
+              className={cn(
+                "w-full max-w-lg rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden",
+                themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
+              )}
+              style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
+            >
+              <div className={cn("p-6 border-b-[6px] flex items-center justify-between", themeMode === 'custom' ? "bg-transparent border-current" : (themeMode === 'default' ? "bg-blue-400 border-black text-black" : "bg-transparent border-current"))}>
+                <h2 className="font-black text-2xl uppercase italic">{t.addAppTitle}</h2>
+                <button onClick={() => setShowAddAppModal(false)} className={cn("p-2 rounded-xl border-4 active:translate-y-1", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black text-black")}><X size={24}/></button>
               </div>
-              <div className="p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto bg-gray-50">
+              <div className={cn("p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-gray-50" : "bg-black/10"))}>
                 {Object.entries(PRESET_APPS).filter(([id]) => !visibleAppIds.includes(id)).map(([id, app]) => (
                   <button 
                     key={id} 
                     id={`add-${id}`}
                     onClick={() => addApp(id)} 
-                    className={cn("p-4 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 active:translate-y-1 active:shadow-none transition-all", app.color)}
+                    className={cn(
+                      "p-4 rounded-3xl border-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 active:translate-y-1 active:shadow-none transition-all",
+                      themeMode === 'default' ? app.color : "bg-transparent border-current"
+                    )}
+                    style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : (themeMode !== 'default' ? {boxShadow: `4px 4px 0px 0px currentColor`} : {})}
                   >
-                    <div className="text-black scale-90">{app.icon}</div>
-                    <span className="font-black text-[10px] uppercase text-black">{app.label}</span>
+                    <div className="scale-90" style={{ color: 'inherit' }}>{app.icon}</div>
+                    <span className="font-black text-[10px] uppercase" style={{ color: 'inherit' }}>{app.label}</span>
                   </button>
                 ))}
               </div>
-              <div className="p-6 bg-white border-t-4 border-black">
-                <button onClick={() => setShowAddAppModal(false)} className="w-full h-16 bg-red-500 text-white rounded-2xl border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Cancelar</button>
+              <div className={cn("p-6 border-t-4", themeMode === 'custom' ? "bg-transparent border-current" : "bg-white border-black")}>
+                <button 
+                  onClick={() => setShowAddAppModal(false)} 
+                  className={cn(
+                    "w-full h-16 rounded-2xl border-4 font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
+                    themeMode === 'custom' ? "bg-transparent border-current" : "bg-red-500 border-black text-white"
+                  )}
+                  style={themeMode === 'custom' ? {boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
+                >
+                  {t.cancel}
+                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -807,23 +1145,23 @@ export default function App() {
         {showMedicalInfo && (
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="fixed inset-0 bg-red-600 z-[3000] p-8 flex flex-col text-white overflow-y-auto">
             <div className="flex justify-between items-center mb-8">
-                <h2 className="font-black text-4xl uppercase italic tracking-tighter">Ficha Médica</h2>
+                <h2 className="font-black text-4xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
                 <button onClick={() => setShowMedicalInfo(false)} className="bg-white text-black p-4 rounded-3xl border-8 border-black"><X size={40}/></button>
             </div>
             <div className="space-y-8 flex-1">
                 <div className="bg-black/20 p-6 rounded-[32px] border-2 border-white/30">
-                    <span className="font-black text-xl uppercase opacity-60">Nome Completo</span>
+                    <span className="font-black text-xl uppercase opacity-60">{t.medicalName}</span>
                     <p className="font-black text-3xl sm:text-5xl">JOÃO DA SILVA</p>
                 </div>
                 <div className="bg-black/20 p-6 rounded-[32px] border-2 border-white/30">
-                    <span className="font-black text-xl uppercase opacity-60">Tipo Sanguíneo</span>
+                    <span className="font-black text-xl uppercase opacity-60">{t.medicalBlood}</span>
                     <p className="font-black text-7xl">O +</p>
                 </div>
                 <div className="bg-black/20 p-6 rounded-[32px] border-2 border-white/30">
-                    <span className="font-black text-xl uppercase opacity-60">Alergias</span>
+                    <span className="font-black text-xl uppercase opacity-60">{t.medicalAllergies}</span>
                     <p className="font-black text-3xl">PENICILINA, LÁTEX</p>
                 </div>
-                <div className="p-8 bg-white text-black rounded-[32px] border-8 border-black font-black text-2xl text-center">CONTATO: (11) 99999-9999</div>
+                <div className="p-8 bg-white text-black rounded-[32px] border-8 border-black font-black text-2xl text-center">{t.medicalPhone}: (11) 99999-9999</div>
             </div>
           </motion.div>
         )}
