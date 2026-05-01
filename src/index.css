@@ -24,4 +24,16 @@
   .h-dvh {
     height: 100dvh;
   }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 12px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #000;
+    border: 3px solid #f3f4f6;
+    border-radius: 10px;
+  }
 }

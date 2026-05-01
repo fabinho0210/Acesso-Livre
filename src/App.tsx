@@ -40,7 +40,8 @@ import {
   Calculator,
   Calendar,
   Mail,
-  Info
+  Info,
+  Flashlight
 } from 'lucide-react';
 import { cn } from './lib/utils';
 
@@ -75,6 +76,45 @@ export default function App() {
   const [confirmCall, setConfirmCall] = useState(() => localStorage.getItem('launcher_confirmCall') === 'true');
   const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') !== 'false');
   const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem('launcher_voiceEnabled') !== 'false');
+  const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
+  
+  // --- Theme States ---
+  type ThemePreset = 'default' | 'classic' | 'inverted' | 'night' | 'solar' | 'custom';
+  const [themeMode, setThemeMode] = useState<ThemePreset>(() => (localStorage.getItem('launcher_themeMode') as ThemePreset) || 'default');
+  const [customTheme, setCustomTheme] = useState(() => {
+    const saved = localStorage.getItem('launcher_customTheme');
+    return saved ? JSON.parse(saved) : { bg: '#e5e7eb', fg: '#000000', accent: '#facc15' };
+  });
+
+  // --- Theme Configuration ---
+  const THEMES: Record<ThemePreset, { bg: string, text: string, cardBorder: string, shadow: string, name: string }> = {
+    default: { bg: 'bg-[#e5e7eb]', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Padrão' },
+    classic: { bg: 'bg-black', text: 'text-[#facc15]', cardBorder: 'border-[#facc15]', shadow: '#facc15', name: 'Clássico' },
+    inverted: { bg: 'bg-white', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Invertido' },
+    night: { bg: 'bg-[#0f172a]', text: 'text-[#38bdf8]', cardBorder: 'border-[#38bdf8]', shadow: '#38bdf8', name: 'Noturno' },
+    solar: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]', cardBorder: 'border-[#92400e]', shadow: '#92400e', name: 'Solar' },
+    custom: { bg: '', text: '', cardBorder: '', shadow: '', name: 'Customizado' }
+  };
+
+  const getThemeStyles = () => {
+    if (themeMode === 'custom') {
+      return {
+        background: { backgroundColor: customTheme.bg },
+        text: { color: customTheme.fg },
+        border: { borderColor: customTheme.fg },
+        shadowColor: customTheme.fg
+      };
+    }
+    const t = THEMES[themeMode];
+    return {
+      background: {}, // Handled by tailwind classes
+      text: {},
+      border: {},
+      shadowColor: t.shadow
+    };
+  };
+
+  const currentThemeStyles = getThemeStyles();
   
   // --- UI States ---
   const [showAccessModal, setShowAccessModal] = useState(false);
@@ -92,6 +132,8 @@ export default function App() {
   const [zoomScale, setZoomScale] = useState(1);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
   const [showAddAppModal, setShowAddAppModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [flashlightOn, setFlashlightOn] = useState(false);
 
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const dwellProgressRef = useRef(0);
@@ -248,6 +290,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     cursorX.set(cursorPos.x);
     cursorY.set(cursorPos.y);
     const headerHeight = 80;
@@ -296,17 +343,20 @@ export default function App() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 h-[100dvh] flex flex-col overflow-hidden select-none transition-all duration-500 font-sans",
-        isDarkMode ? "bg-black" : "bg-[#e5e7eb]",
-        colorblindMode && "grayscale contrast-125",
-        highContrastMode && "!bg-black !text-white"
+        "fixed inset-0 flex flex-col overflow-hidden select-none transition-all duration-500 font-sans",
+        themeMode !== 'custom' && THEMES[themeMode].bg,
+        themeMode !== 'custom' && THEMES[themeMode].text,
+        colorblindMode && "grayscale contrast-125"
       )}
-      style={{ fontSize: `${fontSize}px` }}
+      style={{ 
+        fontSize: `${fontSize}px`,
+        ...(themeMode === 'custom' ? currentThemeStyles.background : {})
+      }}
     >
       {/* Flash Overlay */}
       <AnimatePresence>
-        {flashAlert && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-yellow-400/80 z-[3000] pointer-events-none" />
+        {(flashAlert || flashlightOn) && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: flashlightOn ? 0.4 : 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-yellow-400/80 z-[3000] pointer-events-none" />
         )}
       </AnimatePresence>
 
@@ -321,57 +371,74 @@ export default function App() {
       {/* Header */}
       <header className={cn(
         "h-20 flex-shrink-0 border-b-[4px] flex items-center justify-between px-6 z-[200]",
-        isDarkMode || highContrastMode ? "bg-zinc-900 border-white text-white" : "bg-white border-black text-black"
-      )}>
+        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg),
+        themeMode !== 'custom' ? THEMES[themeMode].cardBorder : ""
+      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
         <div className="flex items-center gap-3 overflow-hidden">
           <button 
             id="access-btn"
-            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); }}
+            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak("Menu de Acessibilidade aberto"); }}
             className={cn(
               "w-12 h-12 flex-shrink-0 mt-1 bg-yellow-400 rounded-2xl border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
-              highContrastMode && "bg-white border-white shadow-white text-black"
+              themeMode === 'custom' ? "bg-white border-black" : "bg-yellow-400 border-black"
             )}
+            style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
           >
             <Accessibility size={28} strokeWidth={3} />
           </button>
-          <h1 className="font-black italic text-xl sm:text-2xl tracking-tighter uppercase leading-none truncate">ACESSO LIVRE</h1>
+          <h1 className="font-black italic text-xl sm:text-2xl tracking-tighter uppercase leading-none truncate" style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>ACESSO LIVRE</h1>
         </div>
         <button 
           id="settings-btn"
           onClick={() => triggerHaptic([50])}
           className={cn(
             "w-12 h-12 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
-            isDarkMode || highContrastMode ? "bg-zinc-800 border-white text-white shadow-white" : "bg-white border-black"
+            themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg)
           )}
+          style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : {}}
         >
-          <Settings size={28} strokeWidth={2.5} />
+          <Settings size={28} strokeWidth={2.5} style={themeMode === 'custom' ? {color: customTheme.fg} : {}} />
         </button>
       </header>
 
-      {/* Main Grid Area - Now Scrollable */}
-      <main className="flex-1 p-4 sm:p-6 overflow-y-auto z-10 custom-scrollbar">
+      {/* 2. ÁREA CENTRAL DINÂMICA (Scrollable Grid) */}
+      <main className="flex-1 p-4 sm:p-6 overflow-y-auto z-10 custom-scrollbar scroll-smooth">
         <motion.div 
           animate={{ scale: zoomScale, x: panPos.x, y: panPos.y }}
           transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
-          className="grid grid-cols-2 gap-4 sm:gap-6 w-full max-w-lg mx-auto pb-12"
+          className="w-full max-w-xl mx-auto"
         >
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 w-full pb-12">
           {allApps.map(app => (
-            <div
+            <motion.div
               key={app.id}
               id={app.id}
               onClick={app.action}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') app.action(); }}
+              whileHover={enhancedFeedback ? { scale: 1.05, y: -4 } : {}}
+              whileTap={enhancedFeedback ? { scale: 0.95, y: 4, x: 4 } : {}}
               className={cn(
                 "relative flex flex-col aspect-square items-center justify-center gap-2 rounded-[32px] sm:rounded-[48px] border-[4px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer select-none",
-                highContrastMode ? "bg-black text-white border-white shadow-white/50" : app.color,
-                isDarkMode ? "border-white shadow-white/10" : "border-black",
-                hoveredId === app.id ? "scale-[1.05] shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]" : "scale-100"
+                themeMode === 'classic' || themeMode === 'night' ? "bg-black" : (themeMode === 'custom' ? "" : app.color),
+                themeMode !== 'custom' ? THEMES[themeMode].cardBorder : "",
+                themeMode !== 'custom' ? THEMES[themeMode].text : "",
+                hoveredId === app.id && enhancedFeedback ? "shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]" : "shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
               )}
+              style={{
+                boxShadow: hoveredId === app.id && enhancedFeedback 
+                  ? `16px 16px 0px 0px ${themeMode === 'custom' ? customTheme.fg : currentThemeStyles.shadowColor}`
+                  : `8px 8px 0px 0px ${themeMode === 'custom' ? customTheme.fg : currentThemeStyles.shadowColor}`,
+                ...(themeMode === 'custom' ? { 
+                  backgroundColor: customTheme.accent, 
+                  borderColor: customTheme.fg,
+                  color: customTheme.fg
+                } : {})
+              }}
             >
-              <div className={cn(highContrastMode ? "text-white" : "text-black")}>{app.icon}</div>
-              <span className={cn("font-black text-sm sm:text-lg uppercase px-2 text-center", highContrastMode ? "text-white" : "text-black")}>{app.label}</span>
+              <div style={themeMode === 'custom' ? { color: customTheme.fg } : {}}>{app.icon}</div>
+              <span className="font-black text-sm sm:text-lg uppercase px-2 text-center" style={themeMode === 'custom' ? { color: customTheme.fg } : {}}>{app.label}</span>
               {!lockEdit && app.id !== 'app-all' && (
                 <button 
                   id={`del-${app.id}`}
@@ -381,7 +448,7 @@ export default function App() {
                   <X size={24} strokeWidth={4} className="text-white" />
                 </button>
               )}
-            </div>
+            </motion.div>
           ))}
           
           {!lockEdit && (
@@ -398,21 +465,31 @@ export default function App() {
               <span className="font-black text-sm uppercase">Adicionar</span>
             </button>
           )}
+          </div>
         </motion.div>
       </main>
 
       {/* Nav Bar */}
       <nav className={cn(
         "h-24 flex-shrink-0 border-y-[4px] grid grid-cols-4 z-[100]",
-        isDarkMode || highContrastMode ? "bg-zinc-900 border-white text-white" : "bg-white border-black text-black"
-      )}>
+        themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg),
+        themeMode !== 'custom' ? THEMES[themeMode].cardBorder : ""
+      )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
         {[
           { id: 'nav-back', label: 'VOLTAR', icon: <ArrowLeft size={32} /> },
           { id: 'nav-help', label: 'AJUDA', icon: <Search size={32} /> },
           { id: 'nav-home', label: 'INÍCIO', icon: <Home size={32} /> },
           { id: 'nav-menu', label: 'MENU', icon: <Menu size={32} /> },
         ].map(item => (
-          <button key={item.id} id={item.id} className={cn("flex flex-col items-center justify-center border-r-[2px] last:border-r-0 active:bg-gray-100 transition-colors uppercase", isDarkMode || highContrastMode ? "border-white/10 active:bg-zinc-800" : "border-black active:bg-gray-100")}>
+          <button 
+            key={item.id} 
+            id={item.id} 
+            className={cn(
+              "flex flex-col items-center justify-center border-r-[2px] last:border-r-0 active:bg-gray-100 transition-colors uppercase",
+              themeMode !== 'custom' ? (themeMode === 'default' ? "border-black/20" : THEMES[themeMode].cardBorder.replace('border-', 'border-opacity-20 border-')) : ""
+            )}
+            style={themeMode === 'custom' ? {borderColor: `${customTheme.fg}40`, color: customTheme.fg} : {}}
+          >
             {item.icon}
             <span className="font-black text-[10px] sm:text-xs mt-1">{item.label}</span>
           </button>
@@ -420,37 +497,81 @@ export default function App() {
       </nav>
 
       {/* Assistive Controls Section */}
-      <div className={cn("h-[32%] flex-shrink-0 grid grid-cols-[110px_1fr_110px] border-b-[4px] z-[100]", isDarkMode || highContrastMode ? "bg-black border-white/20" : "bg-[#e5e7eb] border-black")}>
-        <div className={cn("border-r-[4px] flex items-center justify-center", isDarkMode || highContrastMode ? "bg-zinc-900 border-white" : "bg-white border-black")}>
-          <button id="mic-btn" onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); }} className={cn("w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", isVoiceActive ? "bg-red-400 border-black" : (isDarkMode || highContrastMode ? "bg-zinc-800 border-white shadow-white" : "bg-white border-black"))}>
+      <div 
+        className={cn("h-[32%] flex-shrink-0 grid grid-cols-[110px_1fr_110px] border-b-[4px] z-[100]", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#e5e7eb]" : THEMES[themeMode].bg))}
+        style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
+      >
+        <div 
+          className={cn("border-r-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : THEMES[themeMode].bg))}
+          style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}
+        >
+          <button 
+            id="mic-btn" 
+            onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? "Assistente desativado" : "Ouvindo agora..."); }} 
+            className={cn("w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", isVoiceActive ? "bg-red-400 border-black" : "bg-white border-black")}
+            style={{
+              boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : 'rgba(0,0,0,1)'}`,
+              borderColor: themeMode === 'custom' ? customTheme.fg : undefined,
+              color: isVoiceActive ? 'white' : (themeMode === 'custom' ? customTheme.fg : 'black')
+            }}
+          >
             {isVoiceActive ? <Mic size={36} /> : <MicOff size={36} />}
           </button>
         </div>
         <div 
           id="tracks-area" 
           className={cn(
-            "relative overflow-hidden flex items-center justify-center transition-all",
+            "relative overflow-hidden flex flex-col items-center justify-center transition-all",
             !trackpadEnabled && "opacity-40 grayscale pointer-events-none",
-            trackpadEnabled && (isDarkMode || highContrastMode ? "bg-zinc-900 active:bg-zinc-800" : "bg-[#f3f4f6]")
+            trackpadEnabled && (themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-[#f3f4f6]" : THEMES[themeMode].bg))
           )} 
           onMouseMove={trackpadEnabled ? handleTrackpadMove : undefined} 
           onTouchMove={trackpadEnabled ? handleTrackpadMove : undefined} 
           onClick={trackpadEnabled ? handleClick : undefined}
         >
-          <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4", isDarkMode || highContrastMode ? "text-white/10" : "text-gray-300")}>
-            {trackpadEnabled ? "TRACKPAD" : "DESATIVADO"}
-          </span>
+          {trackpadEnabled ? (
+            <div className="flex flex-col items-center justify-center pointer-events-none">
+              <span className={cn("font-black text-4xl sm:text-6xl tracking-tighter leading-none")} style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>
+                {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className={cn("font-black text-[10px] sm:text-xs uppercase opacity-70 mt-1")} style={themeMode === 'custom' ? {color: customTheme.fg} : {}}>
+                {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+              </span>
+            </div>
+          ) : (
+            <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4 opacity-30")}>
+              DESATIVADO
+            </span>
+          )}
+          
           {trackpadEnabled && dwellEnabled && dwellProgress > 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <svg className="w-32 h-32 rotate-[-90deg]">
-                <circle cx="64" cy="64" r="60" fill="none" stroke="#fbbf24" strokeWidth="8" strokeDasharray="377" strokeDashoffset={377 - (377 * dwellProgress) / 100} className="transition-all duration-75" />
+                <circle cx="64" cy="64" r="60" fill="none" stroke={themeMode === 'custom' ? customTheme.fg : "#fbbf24"} strokeWidth="8" strokeDasharray="377" strokeDashoffset={377 - (377 * dwellProgress) / 100} className="transition-all duration-75" />
               </svg>
             </div>
           )}
         </div>
-        <div className={cn("border-l-[4px] flex flex-col", isDarkMode || highContrastMode ? "bg-zinc-900 border-white" : "bg-white border-black")}>
-          <button onClick={() => setZoomScale(s => Math.min(s+0.2, 3))} className="flex-1 border-b-[2px] border-black flex items-center justify-center"><ZoomIn size={40} /></button>
-          <button onClick={() => setZoomScale(s => Math.max(s-0.2, 0.5))} className="flex-1 flex items-center justify-center"><ZoomOut size={40} /></button>
+        <div className={cn("border-l-[4px] flex items-center justify-center", themeMode === 'custom' ? "bg-transparent" : THEMES[themeMode].bg, themeMode !== 'custom' ? THEMES[themeMode].cardBorder : "")} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
+          <button 
+            id="flashlight-btn" 
+            onClick={() => { 
+              const newState = !flashlightOn;
+              setFlashlightOn(newState); 
+              triggerHaptic([50, 100]); 
+              speak(newState ? "Lanterna ligada" : "Lanterna desligada");
+            }} 
+            className={cn(
+              "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
+              flashlightOn ? "bg-yellow-400 border-black" : "bg-gray-100 border-black text-black"
+            )}
+            style={{
+              borderColor: themeMode === 'custom' ? customTheme.fg : undefined,
+              boxShadow: `4px 4px 0px 0px ${themeMode === 'custom' ? customTheme.fg : 'rgba(0,0,0,1)'}`
+            }}
+          >
+            <Flashlight size={36} />
+          </button>
         </div>
       </div>
 
@@ -475,7 +596,7 @@ export default function App() {
       <AnimatePresence>
         {showAccessModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} className={cn("w-full max-w-2xl max-h-[92vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden", isDarkMode || highContrastMode ? "bg-zinc-800 border-white text-white" : "bg-white border-black text-black")}>
+            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} className={cn("w-full max-w-2xl max-h-[92vh] rounded-[40px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden bg-white border-black text-black")}>
               <div className="bg-yellow-400 p-6 border-b-[6px] border-black flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Accessibility size={40} className="text-black" />
@@ -492,17 +613,74 @@ export default function App() {
                     <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("h-28 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">Aumentar Texto</span></button>
                     <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak("Lupa ativada. Use o trackpad para navegar."); }} className="h-28 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">Modo Lupa</span></button>
                     <button onClick={() => setReadingLine(!readingLine)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", readingLine ? "bg-yellow-400 text-black shadow-none" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px]">Linha Leitura</span></button>
-                    <button onClick={() => { setHighContrastMode(!highContrastMode); }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", highContrastMode ? "bg-white text-black shadow-none" : "bg-zinc-200 text-black")}><Contrast size={32} /><span className="font-black uppercase text-[10px]">Contraste</span></button>
+                    
+                    <section className="col-span-3 mt-6">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2 px-2 text-black"><Palette size={24} /> Temas de Contraste</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(Object.entries(THEMES) as [ThemePreset, any][]).filter(([k]) => k !== 'custom').map(([key, t]) => (
+                          <button 
+                            key={key} 
+                            onClick={() => {
+                              setThemeMode(key);
+                              localStorage.setItem('launcher_themeMode', key);
+                              triggerHaptic([50]);
+                              speak(`Tema ${t.name} ativado`);
+                            }}
+                            className={cn(
+                              "h-24 rounded-xl border-[3px] flex items-center justify-center font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                              themeMode === key ? "border-blue-500 scale-95 shadow-none" : "border-black bg-white"
+                            )}
+                          >
+                            <div className="flex flex-col items-center gap-1">
+                              <div className={cn("w-12 h-6 rounded border-2 border-black", t.bg)} />
+                              {t.name}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <button 
+                        onClick={() => { setThemeMode('custom'); localStorage.setItem('launcher_themeMode', 'custom'); speak("Personalização ativada"); }}
+                        className={cn("w-full mt-4 h-16 rounded-2xl border-4 border-black font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]", themeMode === 'custom' ? "bg-purple-400" : "bg-white")}
+                      >
+                        🎨 Criar Meu Tema
+                      </button>
+                    </section>
+
+                    {themeMode === 'custom' && (
+                      <section className="col-span-3 mt-6 bg-zinc-100 p-4 rounded-3xl border-4 border-black">
+                        <h3 className="font-bold text-lg mb-4 text-black italic">Personalizar Cores</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-2">
+                            <span className="text-xs font-black uppercase text-black">Fundo</span>
+                            <div className="flex gap-2 flex-wrap">
+                              {['#ffffff', '#000000', '#111827', '#fef3c7', '#064e3b', '#450a0a'].map(c => (
+                                <button key={c} onClick={() => setCustomTheme({...customTheme, bg: c})} className="w-8 h-8 rounded-full border-2 border-black" style={{backgroundColor: c}} />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <span className="text-xs font-black uppercase text-black">Elementos</span>
+                            <div className="flex gap-2 flex-wrap">
+                              {['#000000', '#ffffff', '#facc15', '#38bdf8', '#ef4444', '#fbbf24'].map(c => (
+                                <button key={c} onClick={() => setCustomTheme({...customTheme, fg: c, accent: c})} className="w-8 h-8 rounded-full border-2 border-black" style={{backgroundColor: c}} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => { localStorage.setItem('launcher_customTheme', JSON.stringify(customTheme)); speak("Cores salvas"); }}
+                          className="w-full mt-4 h-12 bg-green-400 rounded-xl border-4 border-black font-black uppercase text-black"
+                        >
+                          Salvar Estilo
+                        </button>
+                      </section>
+                    )}
                     <button onClick={() => {
                       const newState = !voiceEnabled;
                       setVoiceEnabled(newState);
                       localStorage.setItem('launcher_voiceEnabled', String(newState));
                       triggerHaptic([50]);
                       if (newState) {
-                        // We check the raw value here because the state update hasn't propagated yet
-                        // but actually we just set it to true, so we can call it if we want.
-                        // However, speak() checks the state. So we might need a workaround.
-                        // For now, let's just trigger a manual speak if enabled.
                         const utterance = new SpeechSynthesisUtterance("Voz ativada");
                         utterance.lang = 'pt-BR';
                         window.speechSynthesis.speak(utterance);
@@ -510,6 +688,16 @@ export default function App() {
                     }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", voiceEnabled ? "bg-green-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
                       {voiceEnabled ? <Volume2 size={32} /> : <ZapOff size={32} />}
                       <span className="font-black uppercase text-[10px]">{voiceEnabled ? "Voz Ativa" : "Voz Desativa"}</span>
+                    </button>
+                    <button onClick={() => {
+                      const newState = !enhancedFeedback;
+                      setEnhancedFeedback(newState);
+                      localStorage.setItem('launcher_enhancedFeedback', String(newState));
+                      triggerHaptic([50]);
+                      speak(newState ? "Feedback visual ativado" : "Feedback visual reduzido");
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", enhancedFeedback ? "bg-purple-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
+                      <Palette size={32} />
+                      <span className="font-black uppercase text-[10px]">Feedback Visual</span>
                     </button>
                   </div>
                 </section>
