@@ -731,13 +731,29 @@ export default function App() {
     }
   }, [cursorPos, vibrateOnTouch]);
 
-  const handleTrackpadMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    const isTouch = 'touches' in e;
-    const touch = isTouch ? e.touches[0] : (e as React.MouseEvent);
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = ((touch.clientX - rect.left) / rect.width) * 100;
-    const y = ((touch.clientY - rect.top) / rect.height) * 100;
-    setCursorPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+  const handleTrackpadMove = useCallback((e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
+    // Evita scroll da página e outros comportamentos nativos indesejados
+    if (e.cancelable) e.preventDefault();
+    
+    let clientX, clientY;
+    if ('touches' in e) {
+      if (e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    let x = ((clientX - rect.left) / rect.width) * 100;
+    let y = ((clientY - rect.top) / rect.height) * 100;
+    
+    // Suavização e Limites 0-100
+    setCursorPos({ 
+      x: Math.max(0, Math.min(100, x)), 
+      y: Math.max(0, Math.min(100, y)) 
+    });
   }, []);
 
   useEffect(() => {
@@ -995,12 +1011,14 @@ export default function App() {
         {/* CENTRO: TRACKPAD */}
         <div 
           id="tracks-area"
-          onMouseMove={handleTrackpadMove}
-          onTouchMove={handleTrackpadMove}
+          onPointerDown={handleTrackpadMove}
+          onPointerMove={handleTrackpadMove}
+          onTouchStart={(e) => e.cancelable && e.preventDefault()}
+          onTouchMove={(e) => e.cancelable && e.preventDefault()}
           onClick={handleClick}
           role="region"
           aria-label="Área de controle do cursor (trackpad)"
-          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors"
+          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none"
         >
           {trackpadEnabled && (
             <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity" aria-hidden="true">
@@ -1052,7 +1070,7 @@ export default function App() {
             className="fixed pointer-events-none z-[1000]" 
             style={{ 
               left: cursorPos.x + 'vw', 
-              top: cursorPos.y + 'vh', 
+              top: cursorPos.y + 'dvh', 
               x: "-50%", 
               y: "-50%" 
             }}
