@@ -1,0 +1,17 @@
+{
+  "name": "Acesso Livre",
+  "short_name": "AcessoLivre",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f0",
+  "theme_color": "#facc15",
+  "description": "Launcher de acessibilidade com mouse virtual e comandos de voz.",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/mouse/materialicons/512dp/1x/baseline_mouse_black_48dp.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
