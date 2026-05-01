@@ -73,6 +73,8 @@ export default function App() {
   const [readingLine, setReadingLine] = useState(false);
   const [flashAlert, setFlashAlert] = useState(false);
   const [confirmCall, setConfirmCall] = useState(() => localStorage.getItem('launcher_confirmCall') === 'true');
+  const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') !== 'false');
+  const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem('launcher_voiceEnabled') !== 'false');
   
   // --- UI States ---
   const [showAccessModal, setShowAccessModal] = useState(false);
@@ -103,7 +105,7 @@ export default function App() {
   };
 
   const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
+    if (voiceEnabled && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
@@ -397,9 +399,21 @@ export default function App() {
             {isVoiceActive ? <Mic size={36} /> : <MicOff size={36} />}
           </button>
         </div>
-        <div id="tracks-area" className={cn("relative overflow-hidden flex items-center justify-center", isDarkMode || highContrastMode ? "bg-zinc-900 active:bg-zinc-800" : "bg-[#f3f4f6]")} onMouseMove={handleTrackpadMove} onTouchMove={handleTrackpadMove} onClick={handleClick}>
-          <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4", isDarkMode || highContrastMode ? "text-white/10" : "text-gray-300")}>TRACKPAD</span>
-          {dwellEnabled && dwellProgress > 0 && (
+        <div 
+          id="tracks-area" 
+          className={cn(
+            "relative overflow-hidden flex items-center justify-center transition-all",
+            !trackpadEnabled && "opacity-40 grayscale pointer-events-none",
+            trackpadEnabled && (isDarkMode || highContrastMode ? "bg-zinc-900 active:bg-zinc-800" : "bg-[#f3f4f6]")
+          )} 
+          onMouseMove={trackpadEnabled ? handleTrackpadMove : undefined} 
+          onTouchMove={trackpadEnabled ? handleTrackpadMove : undefined} 
+          onClick={trackpadEnabled ? handleClick : undefined}
+        >
+          <span className={cn("font-black text-xl sm:text-2xl tracking-[0.3em] pointer-events-none uppercase text-center px-4", isDarkMode || highContrastMode ? "text-white/10" : "text-gray-300")}>
+            {trackpadEnabled ? "TRACKPAD" : "DESATIVADO"}
+          </span>
+          {trackpadEnabled && dwellEnabled && dwellProgress > 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <svg className="w-32 h-32 rotate-[-90deg]">
                 <circle cx="64" cy="64" r="60" fill="none" stroke="#fbbf24" strokeWidth="8" strokeDasharray="377" strokeDashoffset={377 - (377 * dwellProgress) / 100} className="transition-all duration-75" />
@@ -414,11 +428,21 @@ export default function App() {
       </div>
 
       {/* Visual Cursor */}
-      <motion.div className="fixed pointer-events-none z-[1000]" style={{ left: cursorX.get() + 'vw', top: `calc(${80}px + ${cursorY.get()}% * (100vh - 80px - 96px - 32vh))`, x: "-50%", y: "-50%" }} animate={{ scale: isClicking ? 0.7 : 1 }}>
-        <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
-          <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrastMode || isDarkMode ? "#fff" : "#facc15"} stroke="black" strokeWidth="10" strokeLinejoin="round" />
-        </svg>
-      </motion.div>
+      <AnimatePresence>
+        {trackpadEnabled && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: isClicking ? 0.7 : 1 }}
+            exit={{ opacity: 0, scale: 0 }}
+            className="fixed pointer-events-none z-[1000]" 
+            style={{ left: cursorX.get() + 'vw', top: `calc(${80}px + ${cursorY.get()}% * (100vh - 80px - 96px - 32vh))`, x: "-50%", y: "-50%" }}
+          >
+            <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
+              <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrastMode || isDarkMode ? "#fff" : "#facc15"} stroke="black" strokeWidth="10" strokeLinejoin="round" />
+            </svg>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Accessibility Modal */}
       <AnimatePresence>
@@ -442,6 +466,24 @@ export default function App() {
                     <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak("Lupa ativada. Use o trackpad para navegar."); }} className="h-28 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">Modo Lupa</span></button>
                     <button onClick={() => setReadingLine(!readingLine)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", readingLine ? "bg-yellow-400 text-black shadow-none" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px]">Linha Leitura</span></button>
                     <button onClick={() => { setHighContrastMode(!highContrastMode); }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", highContrastMode ? "bg-white text-black shadow-none" : "bg-zinc-200 text-black")}><Contrast size={32} /><span className="font-black uppercase text-[10px]">Contraste</span></button>
+                    <button onClick={() => {
+                      const newState = !voiceEnabled;
+                      setVoiceEnabled(newState);
+                      localStorage.setItem('launcher_voiceEnabled', String(newState));
+                      triggerHaptic([50]);
+                      if (newState) {
+                        // We check the raw value here because the state update hasn't propagated yet
+                        // but actually we just set it to true, so we can call it if we want.
+                        // However, speak() checks the state. So we might need a workaround.
+                        // For now, let's just trigger a manual speak if enabled.
+                        const utterance = new SpeechSynthesisUtterance("Voz ativada");
+                        utterance.lang = 'pt-BR';
+                        window.speechSynthesis.speak(utterance);
+                      }
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", voiceEnabled ? "bg-green-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
+                      {voiceEnabled ? <Volume2 size={32} /> : <ZapOff size={32} />}
+                      <span className="font-black uppercase text-[10px]">{voiceEnabled ? "Voz Ativa" : "Voz Desativa"}</span>
+                    </button>
                   </div>
                 </section>
 
@@ -458,8 +500,28 @@ export default function App() {
                 <section>
                   <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Smartphone size={16}/> Motora</h3>
                   <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => {
+                      const newState = !trackpadEnabled;
+                      setTrackpadEnabled(newState);
+                      localStorage.setItem('launcher_trackpadEnabled', String(newState));
+                      triggerHaptic([50]);
+                      speak(newState ? "Trackpad ativado" : "Trackpad desativado");
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", trackpadEnabled ? "bg-yellow-400 text-black shadow-none" : "bg-gray-100 text-black")}>
+                      <Maximize2 size={32} />
+                      <span className="font-black uppercase text-[10px]">{trackpadEnabled ? "Trackpad On" : "Trackpad Off"}</span>
+                    </button>
                     <button onClick={() => setLockEdit(!lockEdit)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", lockEdit ? "bg-red-400 text-black shadow-none" : "bg-orange-300 text-black")}><Lock size={32} /><span className="font-black uppercase text-[10px]">{lockEdit ? "Edição Travada" : "Travar Edição"}</span></button>
                     <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", confirmCall ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">Confirmar Ligação</span></button>
+                    <button onClick={() => {
+                      const newState = !dwellEnabled;
+                      setDwellEnabled(newState);
+                      localStorage.setItem('launcher_dwellEnabled', String(newState));
+                      triggerHaptic([50]);
+                      speak(newState ? "Dwell ativado" : "Dwell desativado");
+                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", dwellEnabled ? "bg-cyan-400 text-black shadow-none" : "bg-gray-100 text-black")}>
+                      <Zap size={32} />
+                      <span className="font-black uppercase text-[10px]">{dwellEnabled ? "Dwell On" : "Dwell Off"}</span>
+                    </button>
                   </div>
                 </section>
 
