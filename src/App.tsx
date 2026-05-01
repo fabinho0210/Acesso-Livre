@@ -95,6 +95,56 @@ const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: 
   );
 };
 
+// --- Memoized App Card for performance ---
+const AppCard = React.memo(({ id, app, onClick, lockEdit, removeApp, themeMode, THEMES, isDarkMode, customTheme, trackpadEnabled }: any) => {
+  return (
+    <motion.div 
+      id={id}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { onClick(); } }}
+      role="listitem"
+      aria-label={`Abrir ${app.label}`}
+      tabIndex={trackpadEnabled ? -1 : 0}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95, x: 4, y: 4 }}
+      className={cn(
+        "group relative aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] transition-all cursor-pointer",
+        themeMode === 'custom' ? "" : (themeMode === 'default' ? app.color : "bg-transparent"),
+        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || "border-black") : ""
+      )}
+      style={{
+        boxShadow: `8px 8px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
+        ...(themeMode === 'custom' ? { borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent } : {})
+      }}
+    >
+      <div className="scale-110 mb-1" aria-hidden="true">
+        {React.cloneElement(app.icon, { 
+          color: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'white' : 'currentColor') 
+        })}
+      </div>
+      <span className={cn(
+        "font-black text-xl sm:text-2xl uppercase tracking-tighter",
+        themeMode === 'default' ? "text-white" : "text-current"
+      )} aria-hidden="true">
+        {app.label}
+      </span>
+      
+      {!lockEdit && (
+        <button 
+          id={`del-${id}`}
+          tabIndex={trackpadEnabled ? -1 : 0}
+          onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
+          onClick={(e) => { e.stopPropagation(); removeApp(id); }}
+          aria-label={`Remover ${app.label}`}
+          className="absolute -top-4 -right-4 w-12 h-12 bg-red-600 text-white rounded-full border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center z-50 active:scale-90"
+        >
+          <X size={24} strokeWidth={5} />
+        </button>
+      )}
+    </motion.div>
+  );
+});
+
 export default function App() {
   const VERSION = "1.1.0";
   // --- Theme States ---
@@ -690,7 +740,7 @@ export default function App() {
     })),
     // Fixed "Todos os Apps" button
     { 
-      id: 'app-all', label: t.allApps, color: 'bg-zinc-100', 
+      id: 'app-all', label: t.allApps, color: isDarkMode ? 'bg-zinc-800' : 'bg-zinc-100', 
       icon: <LayoutGrid size={52} strokeWidth={3} />,
       action: () => { 
         triggerHaptic([50]);
@@ -698,7 +748,7 @@ export default function App() {
         window.location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
       }
     }
-  ], [visibleAppIds, PRESET_APPS, handleAppAction, t, triggerHaptic, speak]);
+  ], [visibleAppIds, PRESET_APPS, handleAppAction, t, triggerHaptic, speak, isDarkMode]);
 
   // --- Voice Commands Logic ---
   const recognitionRef = useRef<any>(null);
@@ -973,8 +1023,8 @@ export default function App() {
         <div className="flex-shrink-0">
           <button 
             id="access-btn"
-            tabIndex={-1}
-            onFocus={(e) => e.currentTarget.blur()}
+            tabIndex={trackpadEnabled ? -1 : 0}
+            onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
             onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak(t.accOpened); }}
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
@@ -998,8 +1048,8 @@ export default function App() {
         <div className="flex-shrink-0">
           <button 
             id="settings-btn"
-            tabIndex={-1}
-            onFocus={(e) => e.currentTarget.blur()}
+            tabIndex={trackpadEnabled ? -1 : 0}
+            onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
             onClick={() => { setShowSettingsModal(true); triggerHaptic([50]); speak(t.settOpened); }}
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
@@ -1023,58 +1073,26 @@ export default function App() {
       >
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-12" role="list" aria-label="Lista de aplicativos disponíveis">
           {visibleAppIds.map((id) => (
-            <motion.div 
-              key={id} 
+            <AppCard 
+              key={id}
               id={id}
+              app={PRESET_APPS[id]}
               onClick={() => handleAppAction(id)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { handleAppAction(id); } }}
-              role="listitem"
-              aria-label={`Abrir ${PRESET_APPS[id]?.label}`}
-              tabIndex={0}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95, x: 4, y: 4 }}
-              className={cn(
-                "group relative aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] transition-all cursor-pointer",
-                themeMode === 'custom' ? "" : (themeMode === 'default' ? PRESET_APPS[id]?.color : "bg-transparent"),
-                themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || "border-black") : ""
-              )}
-              style={{
-                boxShadow: `8px 8px 0px 0px ${themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'rgba(0,0,0,1)' : (THEMES[themeMode]?.shadow || 'rgba(0,0,0,1)'))}`,
-                ...(themeMode === 'custom' ? { borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent } : {})
-              }}
-            >
-              <div className="scale-110 mb-1" aria-hidden="true">
-                {React.cloneElement(PRESET_APPS[id]?.icon as React.ReactElement, { 
-                  color: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'white' : 'currentColor') 
-                })}
-              </div>
-              <span className={cn(
-                "font-black text-xl sm:text-2xl uppercase tracking-tighter",
-                themeMode === 'default' ? "text-white" : "text-current"
-              )} aria-hidden="true">
-                {PRESET_APPS[id]?.label}
-              </span>
-              
-              {!lockEdit && (
-                <button 
-                  id={`del-${id}`}
-                  tabIndex={-1}
-                  onFocus={(e) => e.currentTarget.blur()}
-                  onClick={(e) => { e.stopPropagation(); removeApp(id); }}
-                  aria-label={`Remover ${PRESET_APPS[id]?.label}`}
-                  className="absolute -top-4 -right-4 w-12 h-12 bg-red-600 text-white rounded-full border-[4px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center z-50 active:scale-90"
-                >
-                  <X size={24} strokeWidth={5} />
-                </button>
-              )}
-            </motion.div>
+              lockEdit={lockEdit}
+              removeApp={removeApp}
+              themeMode={themeMode}
+              THEMES={THEMES}
+              isDarkMode={isDarkMode}
+              customTheme={customTheme}
+              trackpadEnabled={trackpadEnabled}
+            />
           ))}
           
           {!lockEdit && (
             <button 
               id="btn-add-app"
-              tabIndex={-1}
-              onFocus={(e) => e.currentTarget.blur()}
+              tabIndex={trackpadEnabled ? -1 : 0}
+              onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
               onClick={() => { setShowAddAppModal(true); triggerHaptic([50]); }}
               aria-label="Adicionar novo aplicativo"
               className="aspect-square flex flex-col items-center justify-center gap-2 rounded-[32px] border-[4px] border-dashed border-black/20 bg-black/5 active:scale-95 transition-all text-black/30 hover:text-black hover:border-black/50"
@@ -1089,17 +1107,18 @@ export default function App() {
 
       {/* Navegação e Assistive Controls simplificados para Footer - Mic | Trackpad | Flashlight */}
       <footer className={cn(
-        "h-28 flex-shrink-0 border-t-[4px] grid grid-cols-[100px_1fr_100px] z-[100] pb-[env(safe-area-inset-bottom)]",
+        "h-28 flex-shrink-0 border-t-[4px] z-[100] pb-[env(safe-area-inset-bottom)] transition-all",
         themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg)),
-        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || "border-black") : ""
+        themeMode !== 'custom' ? (THEMES[themeMode]?.cardBorder || "border-black") : "",
+        trackpadEnabled ? "grid grid-cols-[100px_1fr_100px]" : "grid grid-cols-2"
       )} style={themeMode === 'custom' ? {borderColor: customTheme.fg} : {}}>
         
         {/* Lado Esquerdo: MICROFONE */}
-        <div className="flex items-center justify-center border-r-[3px] border-current">
+        <div className={cn("flex items-center justify-center border-r-[3px] border-current", !trackpadEnabled && "border-r-[4px]")}>
           <button 
             id="mic-btn" 
-            tabIndex={-1}
-            onFocus={(e) => e.currentTarget.blur()}
+            tabIndex={trackpadEnabled ? -1 : 0}
+            onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
             onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
             aria-label={isVoiceActive ? "Desativar assistente de voz" : "Ativar assistente de voz"}
             className={cn(
@@ -1125,43 +1144,43 @@ export default function App() {
           </button>
         </div>
 
-        {/* CENTRO: TRACKPAD */}
-        <div 
-          ref={trackpadRef}
-          id="tracks-area"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onClick={handleClick}
-          role="region"
-          aria-label="Área de controle do cursor (trackpad)"
-          className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none select-none overflow-hidden"
-        >
-          {trackpadEnabled && (
+        {/* CENTRO: TRACKPAD (Condicional) */}
+        {trackpadEnabled && (
+          <div 
+            ref={trackpadRef}
+            id="tracks-area"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onClick={handleClick}
+            role="region"
+            aria-label="Área de controle do cursor (trackpad)"
+            className="relative flex items-center justify-center cursor-crosshair group active:bg-black/5 transition-colors touch-none select-none overflow-hidden"
+          >
             <div className="flex flex-col items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity" aria-hidden="true">
               <div className="w-1.5 h-1.5 rounded-full bg-current" />
               <div className="w-1.5 h-1.5 rounded-full bg-current" />
               <div className="w-1.5 h-1.5 rounded-full bg-current" />
             </div>
-          )}
-          
-          {/* Progress Dwell Visualizer (Small) */}
-          {dwellEnabled && dwellProgress > 0 && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <svg className="w-10 h-10 transform -rotate-90">
-                <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={100} strokeDashoffset={100 - dwellProgress} className="text-current opacity-30" />
-              </svg>
-            </div>
-          )}
-        </div>
+            
+            {/* Progress Dwell Visualizer (Small) */}
+            {dwellEnabled && dwellProgress > 0 && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="w-10 h-10 transform -rotate-90">
+                  <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={100} strokeDashoffset={100 - dwellProgress} className="text-current opacity-30" />
+                </svg>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Lado Direito: LANTERNA */}
         <div className="flex items-center justify-center border-l-[3px] border-current">
           <button 
             id="flashlight-btn" 
-            tabIndex={-1}
-            onFocus={(e) => e.currentTarget.blur()}
+            tabIndex={trackpadEnabled ? -1 : 0}
+            onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
             onClick={toggleFlashlight} 
             aria-label={flashlightOn ? "Desligar lanterna" : "Ligar lanterna"}
             className={cn(
