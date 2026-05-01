@@ -4,7 +4,17 @@
   "requestFramePermissions": [
     "microphone",
     "camera",
-    "geolocation"
+    "geolocation",
+    "bluetooth",
+    "contacts",
+    "phone_call",
+    "sms",
+    "media-library",
+    "wake-lock",
+    "vibrate",
+    "notifications",
+    "nfc",
+    "storage"
   ],
   "majorCapabilities": []
 }

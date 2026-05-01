@@ -80,6 +80,7 @@ export default function App() {
   const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') !== 'false');
   const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem('launcher_voiceEnabled') !== 'false');
   const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
+  const [showCursor, setShowCursor] = useState(() => localStorage.getItem('launcher_showCursor') !== 'false');
   
   // --- Theme States ---
   type Language = 'pt-BR' | 'en-US' | 'es-ES';
@@ -172,7 +173,8 @@ export default function App() {
       assistantOn: "ASSISTENTE ATIVO",
       systemTitle: "SISTEMA",
       configLocked: "Configurações Travadas",
-      configUnlocked: "Configurações Liberadas"
+      configUnlocked: "Configurações Liberadas",
+      showCursor: "Seta Virtual"
     },
     'en-US': {
       appName: "FREE ACCESS",
@@ -256,7 +258,8 @@ export default function App() {
       locationDenied: "Location permission denied.",
       confirmCallMsg: "Please confirm call.",
       assistantOff: "Assistant off",
-      assistantOn: "Listening now..."
+      assistantOn: "Listening now...",
+      showCursor: "Virtual Cursor"
     },
     'es-ES': {
       appName: "ACCESO LIBRE",
@@ -340,7 +343,8 @@ export default function App() {
       locationDenied: "Permiso denegado.",
       confirmCallMsg: "Confirme la llamada.",
       assistantOff: "Asistente inactivo",
-      assistantOn: "Escuchando..."
+      assistantOn: "Escuchando...",
+      showCursor: "Flecha Virtual"
     }
   };
 
@@ -372,13 +376,13 @@ export default function App() {
   });
 
   // --- Theme Configuration ---
-  const THEMES: Record<ThemePreset, { bg: string, text: string, cardBorder: string, shadow: string, name: string }> = {
-    default: { bg: 'bg-[#e5e7eb]', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Padrão' },
-    classic: { bg: 'bg-black', text: 'text-[#facc15]', cardBorder: 'border-[#facc15]', shadow: '#facc15', name: 'Clássico' },
-    inverted: { bg: 'bg-white', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Invertido' },
-    night: { bg: 'bg-[#0f172a]', text: 'text-[#38bdf8]', cardBorder: 'border-[#38bdf8]', shadow: '#38bdf8', name: 'Noturno' },
-    solar: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]', cardBorder: 'border-[#92400e]', shadow: '#92400e', name: 'Solar' },
-    custom: { bg: '', text: '', cardBorder: '', shadow: '', name: 'Customizado' }
+  const THEMES: Record<ThemePreset, { bg: string, text: string, cardBorder: string, shadow: string, name: string, uiBg: string, accentText: string }> = {
+    default: { bg: 'bg-[#e5e7eb]', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Padrão', uiBg: 'bg-white', accentText: 'text-black' },
+    classic: { bg: 'bg-black', text: 'text-[#facc15]', cardBorder: 'border-[#facc15]', shadow: '#facc15', name: 'Clássico', uiBg: 'bg-black', accentText: 'text-[#facc15]' },
+    inverted: { bg: 'bg-white', text: 'text-black', cardBorder: 'border-black', shadow: 'rgba(0,0,0,1)', name: 'Invertido', uiBg: 'bg-white', accentText: 'text-black' },
+    night: { bg: 'bg-[#0f172a]', text: 'text-[#38bdf8]', cardBorder: 'border-[#38bdf8]', shadow: '#38bdf8', name: 'Noturno', uiBg: 'bg-[#1e293b]', accentText: 'text-[#38bdf8]' },
+    solar: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]', cardBorder: 'border-[#92400e]', shadow: '#92400e', name: 'Solar', uiBg: 'bg-[#fffbeb]', accentText: 'text-[#92400e]' },
+    custom: { bg: '', text: '', cardBorder: '', shadow: '', name: 'Customizado', uiBg: '', accentText: '' }
   };
 
   const THEME_NAMES: Record<Language, Record<ThemePreset, string>> = {
@@ -787,7 +791,7 @@ export default function App() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 flex flex-col overflow-hidden select-none transition-all duration-500 font-sans h-[100dvh]",
+        "fixed inset-0 flex flex-col overflow-hidden select-none font-sans h-[100dvh]",
         themeMode !== 'custom' && (THEMES[themeMode]?.bg || THEMES.default.bg),
         themeMode !== 'custom' && (THEMES[themeMode]?.text || THEMES.default.text),
         colorblindMode && "grayscale contrast-125"
@@ -848,15 +852,20 @@ export default function App() {
         </div>
 
         {/* Centro: RELÓGIO E DATA */}
-        <div className="flex-1 flex flex-col items-center justify-center text-center bg-white border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0" onClick={() => {
+        <div className={cn(
+          "flex-1 flex flex-col items-center justify-center text-center border-[4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0 transition-colors",
+          themeMode === 'custom' ? "bg-white border-black text-black" : (THEMES[themeMode]?.uiBg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text)
+        )} onClick={() => {
           if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(() => {});
           }
-        }}>
-          <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none text-black truncate w-full">
+        }}
+        style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent} : (themeMode !== 'default' ? {boxShadow: `6px 6px 0px 0px ${THEMES[themeMode]?.shadow}`} : {})}
+        >
+          <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none truncate w-full">
             {currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span className="font-black text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] text-black opacity-60 truncate w-full">
+          <span className="font-black text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] opacity-80 truncate w-full">
             {currentTime.toLocaleDateString(language, { weekday: 'short', day: '2-digit', month: 'short' })}
           </span>
         </div>
@@ -908,8 +917,17 @@ export default function App() {
                 ...(themeMode === 'custom' ? { borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent } : {})
               }}
             >
-              <div className="scale-110 mb-1" aria-hidden="true">{PRESET_APPS[id]?.icon}</div>
-              <span className="font-black text-xl sm:text-2xl uppercase tracking-tighter" aria-hidden="true">{PRESET_APPS[id]?.label}</span>
+              <div className="scale-110 mb-1" aria-hidden="true">
+                {React.cloneElement(PRESET_APPS[id]?.icon as React.ReactElement, { 
+                  color: themeMode === 'custom' ? customTheme.fg : (themeMode === 'default' ? 'white' : 'currentColor') 
+                })}
+              </div>
+              <span className={cn(
+                "font-black text-xl sm:text-2xl uppercase tracking-tighter",
+                themeMode === 'default' ? "text-white" : "text-current"
+              )} aria-hidden="true">
+                {PRESET_APPS[id]?.label}
+              </span>
               
               {!lockEdit && (
                 <button 
@@ -1027,7 +1045,7 @@ export default function App() {
 
 
       <AnimatePresence>
-        {trackpadEnabled && (
+        {trackpadEnabled && showCursor && (
           <motion.div 
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: isClicking ? 0.7 : 1 }}
@@ -1237,6 +1255,17 @@ export default function App() {
                       <Zap size={32} />
                       <span className="font-black uppercase text-[10px]">{dwellEnabled ? `${t.dwell} On` : `${t.dwell} Off`}</span>
                     </button>
+                    {trackpadEnabled && (
+                      <button onClick={() => {
+                        const newState = !showCursor;
+                        setShowCursor(newState);
+                        localStorage.setItem('launcher_showCursor', String(newState));
+                        triggerHaptic([50]);
+                      }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", showCursor ? "bg-orange-400 shadow-none" : "bg-gray-100")}>
+                        <Smartphone size={32} />
+                        <span className="font-black uppercase text-[10px]">{t.showCursor} {showCursor ? 'On' : 'Off'}</span>
+                      </button>
+                    )}
                   </div>
                 </section>
 
