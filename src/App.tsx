@@ -66,6 +66,7 @@ interface ExternalApp {
 }
 
 export default function App() {
+  const VERSION = "1.1.0";
   // --- Theme States ---
   type Language = 'pt-BR' | 'en-US' | 'es-ES';
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('launcher_language') as Language) || 'pt-BR');
@@ -606,7 +607,7 @@ export default function App() {
 
   const [visibleAppIds, setVisibleAppIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('launcher_visibleApps');
-    return saved ? JSON.parse(saved) : ['phone', 'whatsapp', 'camera', 'browser', 'emergency', 'family'];
+    return saved ? JSON.parse(saved) : ['phone', 'whatsapp', 'camera', 'gallery', 'emergency', 'family'];
   });
 
   const addApp = (id: string) => {
@@ -1485,6 +1486,10 @@ export default function App() {
                     ))}
                   </div>
                 </section>
+                
+                <div className="pt-8 pb-4 text-center">
+                  <p className="font-black text-xs opacity-30 uppercase tracking-widest">Acesso Livre v{VERSION}</p>
+                </div>
               </div>
 
               <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
