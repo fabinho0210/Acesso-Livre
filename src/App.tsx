@@ -42,13 +42,19 @@ interface CursorPos {
 
 // Global Voice State
 let recognition: any = null;
-if (typeof window !== 'undefined' && ('WebkitSpeechRecognition' in window || 'speechRecognition' in window)) {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.lang = 'pt-BR';
-  recognition.continuous = true;
-  recognition.interimResults = false;
-}
+const getRecognition = () => {
+  if (typeof window === 'undefined') return null;
+  if (recognition) return recognition;
+  
+  if ('WebkitSpeechRecognition' in window || 'speechRecognition' in window) {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+  }
+  return recognition;
+};
 
 // --- Translations ---
 const translations = {
@@ -344,8 +350,12 @@ export default function App() {
   const cursorY = useSpring(useMotionValue(50), { stiffness: 300, damping: 30 });
 
   const [apps, setApps] = useState<AppData[]>(() => {
-    const saved = localStorage.getItem('launcher_apps');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('launcher_apps');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to load apps", e);
+    }
     return [
       { id: 'app-phone', label: lang === 'pt' ? 'Telefone' : (lang === 'en' ? 'Phone' : 'Teléfono'), color: 'bg-green-500', createdAt: Date.now() },
       { id: 'app-whatsapp', label: 'WhatsApp', color: 'bg-emerald-600', createdAt: Date.now() + 1 },
@@ -422,14 +432,15 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (recognition) {
-      recognition.stop();
+    const rec = getRecognition();
+    if (rec) {
+      rec.stop();
       switch (lang) {
-        case 'en': recognition.lang = 'en-US'; break;
-        case 'es': recognition.lang = 'es-ES'; break;
-        default: recognition.lang = 'pt-BR';
+        case 'en': rec.lang = 'en-US'; break;
+        case 'es': rec.lang = 'es-ES'; break;
+        default: rec.lang = 'pt-BR';
       }
-      if (isVoiceActive) recognition.start();
+      if (isVoiceActive) rec.start();
     }
   }, [lang]);
 
@@ -555,8 +566,9 @@ export default function App() {
   }, [cursorPos, dwellEnabled, screenReaderEnabled, hoveredId, lowPerformanceMode]);
 
   useEffect(() => {
-    if (!recognition) return;
-    recognition.onresult = (event: any) => {
+    const rec = getRecognition();
+    if (!rec) return;
+    rec.onresult = (event: any) => {
       const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
       setLastCommand(command);
       
@@ -677,16 +689,23 @@ export default function App() {
         speak(t.visionRestored);
       }
     };
-    return () => recognition.stop();
-  }, [apps]);
+    return () => {
+      const rec = getRecognition();
+      if (rec) {
+        rec.onresult = null;
+        try { rec.stop(); } catch(e) {}
+      }
+    };
+  }, [apps, lang, t]);
 
   const toggleVoice = () => {
-    if (!recognition) return;
+    const rec = getRecognition();
+    if (!rec) return;
     if (isVoiceActive) {
-      recognition.stop();
+      rec.stop();
       setIsVoiceActive(false);
     } else {
-      recognition.start();
+      rec.start();
       setIsVoiceActive(true);
       speak("Ouvindo comandos");
     }
@@ -721,7 +740,6 @@ export default function App() {
         "fixed inset-0 h-dvh flex flex-col overflow-hidden select-none transition-colors duration-500 safe-top safe-bottom [--header-height:80px] sm:[--header-height:96px]", 
         highContrast ? "bg-black text-white" : (isDarkMode ? "bg-zinc-950 text-white" : "bg-[#f5f5f0] text-gray-900")
       )}
-      style={{ filter: colorblindMode !== 'none' ? `url(#${colorblindMode})` : 'none' }}
     >
       <header className={cn(
         "h-20 sm:h-24 px-4 sm:px-8 flex items-center justify-between border-b-4 border-black transition-colors duration-500", 
@@ -810,7 +828,18 @@ export default function App() {
             {!lowPerformanceMode && advancedVisualsEnabled && clickRipples.map(ripple => (
               <motion.div key={ripple.id} initial={{ scale: 0, opacity: 0.8 }} animate={{ scale: 25, opacity: 0 }} transition={{ duration: 1 }} className={cn("absolute w-12 h-12 -ml-6 -mt-6 rounded-full border-2 border-black/20")} style={{ left: `${ripple.x}%`, top: `calc(${ripple.y}% + var(--header-height, 80px))` }} />
             ))}
-            <motion.div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate(${cursorPos.x}vw, ${cursorPos.y}vh)`, x: '-10px', y: '-10px', marginTop: 'var(--header-height, 80px)' }}>
+            <motion.div 
+              className="absolute top-0 left-0 origin-top-left" 
+              animate={{ 
+                x: `${cursorPos.x}vw`, 
+                y: `${cursorPos.y}vh` 
+              }}
+              style={{ 
+                translateX: '-10px', 
+                translateY: '-10px', 
+                marginTop: 'var(--header-height, 80px)' 
+              }}
+            >
               <div className="relative">
                 {dwellEnabled && dwellProgress > 0 && (
                   <div className="absolute -top-4 -left-4 w-20 h-20 pointer-events-none flex items-center justify-center">
@@ -1225,7 +1254,7 @@ function AppButton({ id, icon, label, color, onClick, onDelete, highContrast, is
         className={cn(
           "w-full h-full p-3 sm:p-6 rounded-[32px] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center transition-all", 
           isHovered 
-            ? (highContrast ? "bg-white text-black" : themeColor.concat(" scale-105")) 
+            ? (highContrast ? "bg-white text-black" : (themeColor ? themeColor + " scale-105" : "")) 
             : (highContrast ? "bg-zinc-900 border-zinc-700 text-white" : (isDarkMode ? "bg-zinc-800 border-black text-white" : color))
         )}
       >
