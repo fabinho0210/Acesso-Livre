@@ -773,47 +773,47 @@ export default function App() {
 
       {/* Header - Relógio e Data (Neo-Brutalista) */}
       <header className={cn(
-        "h-[120px] flex-shrink-0 border-b-[4px] relative px-6 z-[200] flex flex-col justify-center items-center pt-[env(safe-area-inset-top)]",
+        "h-[130px] flex-shrink-0 border-b-[4px] relative px-4 z-[200] flex items-center justify-between gap-2 pt-[env(safe-area-inset-top)]",
         themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
       )} style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg} : {}}>
         
         {/* Lado Esquerdo: Acessibilidade */}
-        <div className="absolute left-6 top-1/2 -translate-y-1/2">
+        <div className="flex-shrink-0">
           <button 
             id="access-btn"
             onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak(t.accOpened); }}
             className={cn(
-              "w-14 h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
+              "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
               themeMode === 'custom' ? "bg-white border-black" : (themeMode === 'default' ? "bg-yellow-400 border-black" : "bg-transparent")
             )}
             style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`, color: customTheme.fg} : (themeMode !== 'default' ? {boxShadow: `4px 4px 0px 0px ${THEMES[themeMode]?.shadow}`, borderColor: 'currentColor'} : {})}
           >
-            <Accessibility size={28} strokeWidth={2.5} />
+            <Accessibility size={24} className="sm:w-7 sm:h-7" strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Centro: RELÓGIO E DATA */}
-        <div className="flex flex-col items-center justify-center text-center bg-white border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-8 py-2 rounded-[24px]">
-          <span className="font-black text-4xl sm:text-6xl tracking-tighter leading-none text-black">
+        <div className="flex-1 flex flex-col items-center justify-center text-center bg-white border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0">
+          <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none text-black truncate w-full">
             {currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-black opacity-60">
-            {currentTime.toLocaleDateString(language, { weekday: 'long', day: '2-digit', month: 'long' })}
+          <span className="font-black text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] text-black opacity-60 truncate w-full">
+            {currentTime.toLocaleDateString(language, { weekday: 'short', day: '2-digit', month: 'short' })}
           </span>
         </div>
 
-        {/* Lado Direito: Settings/Linguagem (Opcional, mantendo Settings) */}
-        <div className="absolute right-6 top-1/2 -translate-y-1/2">
+        {/* Lado Direito: Settings */}
+        <div className="flex-shrink-0">
           <button 
             id="settings-btn"
             onClick={() => triggerHaptic([50])}
             className={cn(
-              "w-14 h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
+              "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
               themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
             )}
             style={themeMode === 'custom' ? {borderColor: customTheme.fg, boxShadow: `4px 4px 0px 0px ${customTheme.fg}`} : (themeMode !== 'default' ? {boxShadow: `4px 4px 0px 0px ${THEMES[themeMode]?.shadow}`, borderColor: 'currentColor'} : {})}
           >
-            <Settings size={32} strokeWidth={2.5} style={themeMode === 'custom' ? {color: customTheme.fg} : {}} />
+            <Settings size={24} className="sm:w-7 sm:h-7" strokeWidth={2.5} style={themeMode === 'custom' ? {color: customTheme.fg} : {}} />
           </button>
         </div>
       </header>
