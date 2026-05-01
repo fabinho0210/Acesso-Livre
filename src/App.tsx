@@ -429,6 +429,44 @@ export default function App() {
   const [showAddAppModal, setShowAddAppModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [flashlightOn, setFlashlightOn] = useState(false);
+  const videoTrackRef = useRef<MediaStreamTrack | null>(null);
+
+  const toggleFlashlight = async () => {
+    const newState = !flashlightOn;
+    setFlashlightOn(newState);
+    triggerHaptic([50]);
+    speak(newState ? t.flashlightOn : t.flashlightOff);
+
+    try {
+      if (newState) {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: { exact: "environment" } } 
+        }).catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }));
+        
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities() as any;
+        
+        if (capabilities.torch) {
+          await track.applyConstraints({
+            advanced: [{ torch: true }]
+          } as any);
+          videoTrackRef.current = track;
+        } else {
+          console.warn("Torch not supported on this track");
+        }
+      } else {
+        if (videoTrackRef.current) {
+          videoTrackRef.current.stop();
+          videoTrackRef.current = null;
+        }
+      }
+    } catch (err) {
+      console.error("Flashlight error:", err);
+    }
+  };
+
+  const HEADER_HEIGHT = 130;
+  const FOOTER_HEIGHT = 112;
 
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const dwellProgressRef = useRef(0);
@@ -641,9 +679,7 @@ export default function App() {
     }
     // Offline / System Commands
     else if (cmd.includes('lanterna') || cmd.includes('flashlight') || cmd.includes('luz')) {
-      const newState = !flashlightOn;
-      setFlashlightOn(newState);
-      speak(newState ? t.flashlightOn : t.flashlightOff);
+      toggleFlashlight();
     }
     else if (cmd.includes('horas') || cmd.includes('time') || cmd.includes('reloj')) {
       const timeStr = currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
@@ -666,19 +702,18 @@ export default function App() {
     setTimeout(() => setIsClicking(false), 200);
 
     const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const headerHeight = 120;
-    const footerHeight = 112;
-    const mainAreaHeight = window.innerHeight - headerHeight - footerHeight;
+    const mainAreaHeight = window.innerHeight - HEADER_HEIGHT - FOOTER_HEIGHT;
     
     // Convert relative Y to viewport Y within the main area scrollable container
-    const yPxScrollAdjusted = (cursorPos.y / 100) * mainAreaHeight + headerHeight;
+    const vh = window.innerHeight;
+    const yPxScrollAdjusted = (cursorPos.y / 100) * (vh - HEADER_HEIGHT - FOOTER_HEIGHT) + HEADER_HEIGHT;
     const el = document.elementFromPoint(xPx, yPxScrollAdjusted);
     
     if (el) {
-      const target = el.closest('button') || el.closest('a') || el.closest('[role="button"]');
+      const target = el.closest('button') || el.closest('a') || el.closest('[role="button"]') || el.closest('[role="listitem"]');
       if (target) (target as HTMLElement).click();
     }
-  }, [cursorPos, vibrateOnTouch]);
+  }, [cursorPos, vibrateOnTouch, HEADER_HEIGHT, FOOTER_HEIGHT]);
 
   const handleTrackpadMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     const isTouch = 'touches' in e;
@@ -697,15 +732,14 @@ export default function App() {
   useEffect(() => {
     cursorX.set(cursorPos.x);
     cursorY.set(cursorPos.y);
-    const headerHeight = 120;
-    const footerHeight = 112;
-    const mainAreaHeight = window.innerHeight - headerHeight - footerHeight;
+    const vh = window.innerHeight;
+    const mainAreaHeight = vh - HEADER_HEIGHT - FOOTER_HEIGHT;
     
     const xPx = (cursorPos.x / 100) * window.innerWidth;
-    const yPx = (cursorPos.y / 100) * mainAreaHeight + headerHeight;
+    const yPx = (cursorPos.y / 100) * mainAreaHeight + HEADER_HEIGHT;
     const el = document.elementFromPoint(xPx, yPx);
-    const target = el?.closest('button') || el?.closest('a');
-    const elementId = target?.id || null;
+    const target = el?.closest('button') || el?.closest('a') || el?.closest('[role="listitem"]');
+    const elementId = target?.id || (target as any)?.dataset?.appId || (target as any)?.innerText || null;
 
     if (elementId && elementId !== hoveredId && !elementId.includes('tracks')) {
       setHoveredId(elementId);
@@ -742,11 +776,16 @@ export default function App() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 flex flex-col overflow-hidden select-none transition-all duration-500 font-sans",
+        "fixed inset-0 flex flex-col overflow-hidden select-none transition-all duration-500 font-sans h-[100dvh]",
         themeMode !== 'custom' && (THEMES[themeMode]?.bg || THEMES.default.bg),
         themeMode !== 'custom' && (THEMES[themeMode]?.text || THEMES.default.text),
         colorblindMode && "grayscale contrast-125"
       )}
+      onClick={() => {
+        if (!document.fullscreenElement && (document.documentElement as any).requestFullscreen) {
+          (document.documentElement as any).requestFullscreen().catch(() => {});
+        }
+      }}
       style={{ 
         fontSize: `${fontSize}px`,
         ...(themeMode === 'custom' ? currentThemeStyles.background : {})
@@ -762,7 +801,7 @@ export default function App() {
       {/* Reading Line Overlay */}
       {readingLine && (
         <motion.div 
-          animate={{ top: `calc(120px + ${cursorY.get()}% * (100vh - 120px - 96px - 32vh))` }}
+          animate={{ top: `calc(${HEADER_HEIGHT}px + ${cursorY.get()}% * (100vh - ${HEADER_HEIGHT}px - ${FOOTER_HEIGHT}px))` }}
           className={cn(
             "fixed left-0 right-0 h-10 border-y-4 z-[50] pointer-events-none transition-all duration-75",
             themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-yellow-400/40 border-black" : "bg-white/20")
@@ -793,7 +832,11 @@ export default function App() {
         </div>
 
         {/* Centro: RELÓGIO E DATA */}
-        <div className="flex-1 flex flex-col items-center justify-center text-center bg-white border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0">
+        <div className="flex-1 flex flex-col items-center justify-center text-center bg-white border-[4px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0" onClick={() => {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }}>
           <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none text-black truncate w-full">
             {currentTime.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
           </span>
@@ -948,12 +991,7 @@ export default function App() {
         <div className="flex items-center justify-center border-l-[3px] border-current">
           <button 
             id="flashlight-btn" 
-            onClick={() => { 
-              const newState = !flashlightOn;
-              setFlashlightOn(newState); 
-              triggerHaptic([50]); 
-              speak(newState ? t.flashlightOn : t.flashlightOff);
-            }} 
+            onClick={toggleFlashlight} 
             aria-label={flashlightOn ? "Desligar lanterna" : "Ligar lanterna"}
             className={cn(
               "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
@@ -972,7 +1010,6 @@ export default function App() {
 
 
 
-      {/* Visual Cursor */}
       <AnimatePresence>
         {trackpadEnabled && (
           <motion.div 
@@ -980,7 +1017,12 @@ export default function App() {
             animate={{ opacity: 1, scale: isClicking ? 0.7 : 1 }}
             exit={{ opacity: 0, scale: 0 }}
             className="fixed pointer-events-none z-[1000]" 
-            style={{ left: cursorX.get() + 'vw', top: `calc(${120}px + ${cursorY.get()}% * (100vh - 120px - 112px))`, x: "-50%", y: "-50%" }}
+            style={{ 
+              left: cursorPos.x + 'vw', 
+              top: `calc(${HEADER_HEIGHT}px + ${cursorPos.y}% * (100dvh - ${HEADER_HEIGHT}px - ${FOOTER_HEIGHT}px))`, 
+              x: "-50%", 
+              y: "-50%" 
+            }}
           >
             <svg viewBox="0 0 100 100" className="w-[60px] h-[60px] sm:w-[120px] sm:h-[120px] drop-shadow-2xl transform rotate-[-45deg]">
               <path d="M10,10 L90,50 L50,55 L45,90 Z" fill={highContrastMode || isDarkMode ? "#fff" : "#facc15"} stroke="black" strokeWidth="10" strokeLinejoin="round" />

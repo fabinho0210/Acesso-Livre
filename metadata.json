@@ -2,7 +2,9 @@
   "name": "Acesso Livre",
   "description": "Ferramenta de acessibilidade com mouse virtual, comandos de voz e interface simplificada para idosos e pessoas com deficiência.",
   "requestFramePermissions": [
-    "microphone"
+    "microphone",
+    "camera",
+    "geolocation"
   ],
   "majorCapabilities": []
 }
