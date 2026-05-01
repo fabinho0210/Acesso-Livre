@@ -428,7 +428,6 @@ export default function App() {
   const [dwellEnabled, setDwellEnabled] = useState(true);
   const [dwellProgress, setDwellProgress] = useState(0);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [zoomScale, setZoomScale] = useState(1);
   const [panPos, setPanPos] = useState({ x: 0, y: 0 });
   const [showAddAppModal, setShowAddAppModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -1068,15 +1067,17 @@ export default function App() {
       {/* Accessibility Modal */}
       <AnimatePresence>
         {showAccessModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center">
             <motion.div 
-              initial={{ scale: 0.9, y: 50 }} 
-              animate={{ scale: 1, y: 0 }} 
+              initial={{ y: "100%" }} 
+              animate={{ y: 0 }} 
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className={cn(
-                "w-[96%] max-w-xl h-[90dvh] rounded-[48px] border-[6px] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col transition-colors overflow-hidden",
+                "w-full h-full flex flex-col transition-colors overflow-hidden",
                 themeMode === 'custom' ? "" : (themeMode === 'default' ? "bg-white border-black text-black" : (THEMES[themeMode]?.bg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text))
               )}
-              style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, borderColor: customTheme.fg, color: customTheme.fg, boxShadow: `20px 20px 0px 0px ${customTheme.fg}` } : (themeMode !== 'default' ? { boxShadow: `20px 20px 0px 0px ${THEMES[themeMode]?.shadow}` } : {})}
+              style={themeMode === 'custom' ? { backgroundColor: customTheme.bg, color: customTheme.fg } : {}}
             >
               <div className={cn("p-6 sm:p-8 flex-shrink-0 border-b-[6px] border-black flex items-center justify-between", themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-yellow-400 text-black" : "bg-transparent border-current"))}>
                 <div className="flex items-center gap-5">
@@ -1132,7 +1133,7 @@ export default function App() {
                   <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Eye size={16}/> {t.vision}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.increaseText}</span></button>
-                    <button onClick={() => { setZoomScale(2); setShowAccessModal(false); speak(t.lupaOn); }} className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><Search size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.magnifier}</span></button>
+                    <button onClick={() => { setFontSize(s => Math.max(12, s - 4)); triggerHaptic([50]); }} className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><ZoomOut size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.decreaseText}</span></button>
                     <button onClick={() => setReadingLine(!readingLine)} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
                     
                     <section className="col-span-2 mt-6">
@@ -1292,11 +1293,13 @@ export default function App() {
       {/* Add App Modal - Padronizado */}
       <AnimatePresence>
         {showAddAppModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center">
             <motion.div 
-              initial={{ scale: 0.9, y: 50 }} 
-              animate={{ scale: 1, y: 0 }} 
-              className="w-full max-w-lg max-h-[85vh] rounded-[48px] border-[6px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden bg-white text-black"
+              initial={{ y: "100%" }} 
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="w-full h-full flex flex-col overflow-hidden bg-white text-black"
             >
               <div className="p-6 bg-blue-500 border-b-[6px] border-black text-white flex items-center justify-between">
                 <div className="flex items-center gap-4">
