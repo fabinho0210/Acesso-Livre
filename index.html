@@ -4,14 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
-    <!-- Meta Tags para Prevenção de Cache (GitHub Pages) -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
+    <!-- Força o navegador a verificar sempre se há arquivo novo -->
+    <meta http-equiv="cache-control" content="no-cache, must-revalidate, post-check=0, pre-check=0">
+    <meta http-equiv="expires" content="0">
+    <meta http-equiv="pragma" content="no-cache">
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
     <title>Acesso Livre | Assistente de Voz</title>
     <link rel="icon" href="data:image/x-icon;base64,AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAA==">
     
@@ -23,6 +25,22 @@
         });
       }
       console.log("Acesso Livre Ready - Cache Busted");
+
+      function ajustarTemaAndroid() {
+        const metaThemeColor = document.querySelector("meta[name=theme-color]");
+        if (!metaThemeColor) return;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // Se o Android estiver no modo escuro
+            metaThemeColor.setAttribute("content", "#121212");
+        } else {
+            // Se estiver no modo claro
+            metaThemeColor.setAttribute("content", "#007bff");
+        }
+      }
+
+      // Escuta a mudança de tema em tempo real
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ajustarTemaAndroid);
+      ajustarTemaAndroid();
     </script>
     <style>
       html, body {
@@ -63,7 +81,7 @@
       aria-label="Aplicativo Acesso Livre - Assistente para Idosos"
       aria-live="polite"
     ></div>
-    <script type="module" src="/src/main.tsx?v=1714577808"></script>
+    <script type="module" src="/src/main.tsx?v=2"></script>
     <noscript>
       <div style="padding: 2rem; text-align: center; font-family: sans-serif;">
         <h1>Acesso Livre</h1>
