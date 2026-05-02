@@ -44,7 +44,11 @@ import {
   Calendar,
   Mail,
   Info,
-  Flashlight
+  Flashlight,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning
 } from 'lucide-react';
 import { cn } from './lib/utils';
 
@@ -65,18 +69,66 @@ interface ExternalApp {
   color: string;
 }
 
-// --- Digital Clock Sub-component for performance ---
+// --- Digital Clock & Weather Sub-component ---
 const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: string, themeMode: string, THEMES: any, customTheme: any }) => {
   const [time, setTime] = useState(new Date());
+  const [weather, setWeather] = useState<{ temp: number | null, code: number | null }>({ temp: null, code: null });
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const fetchWeather = async (lat: number, lon: number) => {
+      try {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+        const data = await response.json();
+        if (data.current_weather) {
+          setWeather({ 
+            temp: Math.round(data.current_weather.temperature), 
+            code: data.current_weather.weathercode
+          });
+        }
+      } catch (error) {
+        console.error("Weather fetch failed", error);
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => console.log("User denied geolocation for weather")
+      );
+    }
+  }, []);
+
+  const getWeatherIcon = (code: number | null) => {
+    if (code === null) return <Sun className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={3} />;
+    // WMO Weather interpretation codes (WW)
+    if (code === 0) return <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" strokeWidth={3} />;
+    if (code <= 3) return <Cloud className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" strokeWidth={3} />;
+    if (code <= 48) return <Cloud className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" strokeWidth={3} />;
+    if (code <= 67) return <CloudRain className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" strokeWidth={3} />;
+    if (code <= 77) return <CloudSnow className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" strokeWidth={3} />;
+    if (code <= 82) return <CloudRain className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" strokeWidth={3} />;
+    if (code <= 99) return <CloudLightning className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" strokeWidth={3} />;
+    return <Sun className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={3} />;
+  };
+
+  const formatDate = (date: Date) => {
+    if (language === 'pt-BR') {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    return date.toLocaleDateString(language);
+  };
+
   return (
     <div className={cn(
-      "flex-1 flex flex-col items-center justify-center text-center border-[4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0 transition-colors",
+      "flex-1 flex flex-col items-center justify-center text-center border-[4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0 transition-colors cursor-pointer",
       themeMode === 'custom' ? "bg-white border-black text-black" : (THEMES[themeMode]?.uiBg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text)
     )} onClick={() => {
       if (document.documentElement.requestFullscreen) {
@@ -85,12 +137,26 @@ const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: 
     }}
     style={themeMode === 'custom' ? {borderColor: customTheme.fg, color: customTheme.fg, backgroundColor: customTheme.accent} : (themeMode !== 'default' ? {boxShadow: `6px 6px 0px 0px ${THEMES[themeMode]?.shadow}`} : {})}
     >
-      <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none truncate w-full">
-        {time.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
-      </span>
-      <span className="font-black text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] opacity-80 truncate w-full">
-        {time.toLocaleDateString(language, { weekday: 'short', day: '2-digit', month: 'short' })}
-      </span>
+      <div className="flex items-center gap-3">
+        <span className="font-black text-3xl sm:text-5xl tracking-tighter leading-none">
+          {time.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
+        </span>
+        {weather.temp !== null && (
+          <div className="flex items-center gap-1 bg-black/10 px-3 py-1 rounded-full border-2 border-current">
+            {getWeatherIcon(weather.code)}
+            <span className="font-black text-lg sm:text-xl">{weather.temp}°C</span>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 mt-1">
+        <span className="font-black text-[10px] sm:text-sm uppercase tracking-widest opacity-80">
+          {time.toLocaleDateString(language, { weekday: 'long' })}
+        </span>
+        <span className="hidden sm:inline opacity-30">•</span>
+        <span className="font-black text-[10px] sm:text-sm uppercase tracking-widest opacity-80">
+          {formatDate(time)}
+        </span>
+      </div>
     </div>
   );
 };
@@ -242,12 +308,12 @@ export default function App() {
       themes: "Temas de Contraste",
       customCores: "Personalizar Cores",
       voiceActive: "Voz Ativa",
-      voiceInactive: "Voz Morda",
+      voiceInactive: "Voz Inativa",
       visualFeedback: "Feedback Visual",
       vibrateTouch: "Vibrar ao Toque",
       flashAlert: "Flash de Alerta",
       trackpad: "Trackpad",
-      setup: "MODO CONFIGURAÇÃO",
+      setup: "CONFIGURAÇÕES",
       configMode: "MODO CONFIGURAÇÃO",
       confirmCall: "Confirmar Ligação",
       dwell: "Clique Automático",
@@ -278,11 +344,14 @@ export default function App() {
       gallery: "GALERIA",
       email: "E-MAIL",
       maps: "MAPS",
+      contacts: "CONTATOS",
+      settings: "CONFIGURAÇÕES",
       // Feedback
       opened: "Abrindo",
       added: "Adicionado",
       removed: "Removido com sucesso",
       accOpened: "Menu de Acessibilidade aberto",
+      settOpened: "Configurações abertas",
       lupaOn: "Lupa ativada. Use o trackpad para navegar.",
       themeActivated: "Tema ativado",
       customThemeOn: "Personalização ativada",
@@ -307,7 +376,20 @@ export default function App() {
       systemTitle: "SISTEMA",
       configLocked: "Configurações Travadas",
       configUnlocked: "Configurações Liberadas",
-      showCursor: "Seta Virtual"
+      showCursor: "Seta Virtual",
+      defPadrão: "Definir como Padrão",
+      defPadrãoSub: "Para o botão Home sempre voltar aqui",
+      listening: "Ouvindo...",
+      chooseApp: "ESCOLHA UM APLICATIVO",
+      scrollingDown: "Descendo",
+      scrollingUp: "Subindo",
+      zoomingIn: "Aumentando",
+      zoomingOut: "Diminuindo",
+      appNotFound: "Aplicativo não encontrado",
+      itIs: "Agora são ",
+      batteryLevel: "Nível de bateria em ",
+      unknownLocation: "Local desconhecido",
+      youAreAt: "Você está na"
     },
     'en-US': {
       appName: "FREE ACCESS",
@@ -366,11 +448,14 @@ export default function App() {
       gallery: "GALLERY",
       email: "E-MAIL",
       maps: "MAPS",
+      contacts: "CONTACTS",
+      settings: "SETTINGS",
       // Feedback
       opened: "Opening",
       added: "Added",
       removed: "Successfully removed",
       accOpened: "Accessibility menu opened",
+      settOpened: "Settings opened",
       lupaOn: "Magnifier on. Use trackpad to navigate.",
       themeActivated: "Theme activated",
       customThemeOn: "Customization activated",
@@ -392,7 +477,20 @@ export default function App() {
       confirmCallMsg: "Please confirm call.",
       assistantOff: "Assistant off",
       assistantOn: "Listening now...",
-      showCursor: "Virtual Cursor"
+      showCursor: "Virtual Cursor",
+      defPadrão: "Set as Default",
+      defPadrãoSub: "So the Home button always returns here",
+      listening: "Listening...",
+      chooseApp: "CHOOSE AN APPLICATION",
+      scrollingDown: "Scrolling down",
+      scrollingUp: "Scrolling up",
+      zoomingIn: "Zooming in",
+      zoomingOut: "Zooming out",
+      appNotFound: "App not found",
+      itIs: "It is ",
+      batteryLevel: "Battery level at ",
+      unknownLocation: "Unknown location",
+      youAreAt: "You are at"
     },
     'es-ES': {
       appName: "ACCESO LIBRE",
@@ -451,11 +549,14 @@ export default function App() {
       gallery: "GALERÍA",
       email: "E-MAIL",
       maps: "MAPS",
+      contacts: "CONTACTOS",
+      settings: "AJUSTES",
       // Feedback
       opened: "Abriendo",
       added: "Añadido",
       removed: "Eliminado con éxito",
       accOpened: "Menú de accesibilidad abierto",
+      settOpened: "Ajustes abiertos",
       lupaOn: "Lupa activa. Usa el trackpad.",
       themeActivated: "Tema activado",
       customThemeOn: "Personalización activa",
@@ -477,7 +578,20 @@ export default function App() {
       confirmCallMsg: "Confirme la llamada.",
       assistantOff: "Asistente inactivo",
       assistantOn: "Escuchando...",
-      showCursor: "Flecha Virtual"
+      showCursor: "Flecha Virtual",
+      defPadrão: "Definir como Predeterminado",
+      defPadrãoSub: "Para que el botón Home siempre vuelva aquí",
+      listening: "Escuchando...",
+      chooseApp: "ELIJA UNA APLICACIÓN",
+      scrollingDown: "Bajando",
+      scrollingUp: "Subiendo",
+      zoomingIn: "Aumentando",
+      zoomingOut: "Disminuyendo",
+      appNotFound: "Aplicación no encontrada",
+      itIs: "Son las ",
+      batteryLevel: "Nivel de batería al ",
+      unknownLocation: "Ubicación desconocida",
+      youAreAt: "Estás en"
     }
   };
 
@@ -667,9 +781,9 @@ export default function App() {
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
           const data = await res.json();
-          const address = data.display_name || (language === 'pt-BR' ? "Local desconhecido" : (language === 'es-ES' ? "Ubicación desconocida" : "Unknown location"));
+          const address = data.display_name || t.unknownLocation;
           setLocationText(address);
-          speak(`${language === 'en-US' ? 'You are at' : (language === 'es-ES' ? 'Estás en' : 'Você está na')}: ${address}`);
+          speak(`${t.youAreAt}: ${address}`);
         } catch (err) {
           speak(t.locationUnknown);
         }
@@ -684,7 +798,8 @@ export default function App() {
     'camera': { label: t.camera, color: 'bg-[#3b82f6]', icon: <Camera size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
     'browser': { label: t.browser, color: 'bg-[#f97316]', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
     'emergency': { label: t.emergency, color: 'bg-red-700', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'tel', value: 'tel:190' },
-    'family': { label: t.family, color: 'bg-purple-600', icon: <Heart size={52} strokeWidth={3} />, type: 'link', value: '#' },
+    'contacts': { label: t.contacts, color: 'bg-blue-600', icon: <Accessibility size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.contacts' },
+    'family': { label: t.family, color: 'bg-indigo-600', icon: <Heart size={52} strokeWidth={3} />, type: 'link', value: '#' },
     'youtube': { label: t.youtube, color: 'bg-[#ef4444]', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
     'facebook': { label: t.facebook, color: 'bg-[#1877f2]', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
     'instagram': { label: t.instagram, color: 'bg-pink-500', icon: <Instagram size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
@@ -693,7 +808,7 @@ export default function App() {
     'mail': { label: t.email, color: 'bg-blue-600', icon: <Mail size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_EMAIL;end' },
     'calculator': { label: t.calc, color: 'bg-zinc-800', icon: <Calculator size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.calculator2' },
     'calendar': { label: 'AGENDA', color: 'bg-orange-600', icon: <Calendar size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.calendar' },
-    'settings': { label: 'AJUSTES', color: 'bg-zinc-500', icon: <Settings size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.settings.SETTINGS;end' },
+    'settings': { label: t.settings, color: 'bg-zinc-500', icon: <Settings size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.settings.SETTINGS;end' },
   }), [t]);
 
   // --- Persistence Layer (SharedPreferences Equivalent) ---
@@ -842,28 +957,28 @@ export default function App() {
     if (cmd.includes('descer') || cmd.includes('down') || cmd.includes('bajar')) {
       const el = document.getElementById('main-scroll-area');
       if (el) el.scrollBy({ top: 300, behavior: 'smooth' });
-      speak(language === 'pt-BR' ? 'Descendo' : (language === 'es-ES' ? 'Bajando' : 'Scrolling down'));
+      speak(t.scrollingDown);
     }
     else if (cmd.includes('subir') || cmd.includes('up') || cmd.includes('arriba')) {
       const el = document.getElementById('main-scroll-area');
       if (el) el.scrollBy({ top: -300, behavior: 'smooth' });
-      speak(language === 'pt-BR' ? 'Subindo' : (language === 'es-ES' ? 'Subiendo' : 'Scrolling up'));
+      speak(t.scrollingUp);
     }
     // Zoom Commands
     else if (cmd.includes('aumentar') || cmd.includes('zoom in') || cmd.includes('más')) {
       setFontSize(s => Math.min(48, s + 4));
-      speak(language === 'pt-BR' ? 'Aumentando' : (language === 'es-ES' ? 'Aumentando' : 'Zooming in'));
+      speak(t.zoomingIn);
     }
     else if (cmd.includes('diminuir') || cmd.includes('zoom out') || cmd.includes('menos')) {
       setFontSize(s => Math.max(16, s - 4));
-      speak(language === 'pt-BR' ? 'Diminuindo' : (language === 'es-ES' ? 'Disminuyendo' : 'Zooming out'));
+      speak(t.zoomingOut);
     }
     // App Launchers
     else if (cmd.includes('abrir') || cmd.includes('open')) {
       const appName = tokens[tokens.length - 1];
       const app = allApps.find(a => a.label.toLowerCase().includes(appName));
       if (app) app.action();
-      else speak(language === 'pt-BR' ? `Aplicativo ${appName} não encontrado` : `App ${appName} not found`);
+      else speak(`${t.appNotFound}: ${appName}`);
     }
     // Emergency
     else if (cmd.includes('ajuda') || cmd.includes('help') || cmd.includes('socorro') || cmd.includes('auxilio')) {
@@ -875,13 +990,13 @@ export default function App() {
     }
     else if (cmd.includes('horas') || cmd.includes('time') || cmd.includes('reloj')) {
       const timeStr = new Date().toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
-      speak((language === 'pt-BR' ? 'Agora são ' : (language === 'es-ES' ? 'Son las ' : 'It is ')) + timeStr);
+      speak(t.itIs + timeStr);
     }
     else if (cmd.includes('bateria') || cmd.includes('battery') || cmd.includes('carga')) {
       if ('getBattery' in navigator) {
         (navigator as any).getBattery().then((battery: any) => {
           const level = Math.floor(battery.level * 100);
-          const msg = (language === 'pt-BR' ? 'Nível de bateria em ' : (language === 'es-ES' ? 'Nivel de batería al ' : 'Battery level at ')) + level + '%';
+          const msg = t.batteryLevel + level + '%';
           speak(msg);
         });
       }
@@ -1434,7 +1549,7 @@ export default function App() {
                   <div>
                     <h2 className="font-black text-4xl sm:text-5xl uppercase tracking-tighter leading-none">{t.addAppTitle}</h2>
                     <p className="text-xl font-bold opacity-80 uppercase mt-2 tracking-tight">
-                      {language === 'pt-BR' ? 'ESCOLHA UM APLICATIVO' : (language === 'es-ES' ? 'ELIJA UNA APLICACIÓN' : 'CHOOSE AN APPLICATION')}
+                      {t.chooseApp}
                     </p>
                   </div>
                 </div>
@@ -1558,7 +1673,7 @@ export default function App() {
                   <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-[20px] border-[4px] border-black/20">
                     <Settings size={32} strokeWidth={3} />
                   </div>
-                  <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">Configurações</h2>
+                  <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.settings}</h2>
                 </div>
                 <button onClick={() => setShowSettingsModal(false)} className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
               </div>
@@ -1566,7 +1681,7 @@ export default function App() {
               <div className="flex-1 p-6 sm:p-10 overflow-y-auto space-y-8 pb-36 custom-scrollbar">
                 {/* IDIOMA */}
                 <section>
-                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2 text-current px-2"><Smartphone size={16}/> Idioma / Language</h3>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2 text-current px-2"><Smartphone size={16}/> {language === 'pt-BR' ? 'Idioma' : (language === 'es-ES' ? 'Idioma' : 'Language')}</h3>
                   <div className="grid grid-cols-1 gap-4">
                     {(['pt-BR', 'en-US', 'es-ES'] as Language[]).map((lang) => (
                       <button 
@@ -1595,7 +1710,7 @@ export default function App() {
                         triggerHaptic([50, 50]);
                         // Intent para abrir as configurações de Home do Android
                         window.location.href = 'intent:#Intent;action=android.settings.HOME_SETTINGS;end';
-                        speak(language === 'pt-BR' ? 'Abrindo configurações de início' : 'Opening home settings');
+                        speak(t.opened + " " + t.settings);
                       }}
                       className="min-h-[100px] p-6 rounded-[24px] border-[4px] border-black bg-white text-black flex items-center gap-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
                     >
@@ -1603,8 +1718,8 @@ export default function App() {
                         <Home size={32} strokeWidth={3} />
                       </div>
                       <div className="text-left">
-                        <span className="block font-black text-2xl uppercase tracking-tighter leading-none">Definir como Padrão</span>
-                        <span className="block font-bold text-sm opacity-60 uppercase mt-1">Para o botão Home sempre voltar aqui</span>
+                        <span className="block font-black text-2xl uppercase tracking-tighter leading-none">{t.defPadrão}</span>
+                        <span className="block font-bold text-sm opacity-60 uppercase mt-1">{t.defPadrãoSub}</span>
                       </div>
                     </button>
                   </div>
