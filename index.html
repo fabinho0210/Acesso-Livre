@@ -1,93 +1,23 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    
-    <!-- Força o navegador a verificar sempre se há arquivo novo -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acesso Livre - Launcher de Acessibilidade</title>
+
+    <!-- BLOQUEIO DE CACHE -->
     <meta http-equiv="cache-control" content="no-cache, must-revalidate, post-check=0, pre-check=0">
     <meta http-equiv="expires" content="0">
     <meta http-equiv="pragma" content="no-cache">
 
-    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#facc15">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007bff">
-    <title>Acesso Livre | Assistente de Voz</title>
-    <link rel="icon" href="data:image/x-icon;base64,AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAA==">
-    
-    <script>
-      // Limpeza de Service Workers antigos
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (let registration of registrations) { registration.unregister(); }
-        });
-      }
-      console.log("Acesso Livre Ready - Cache Busted");
-
-      function ajustarTemaAndroid() {
-        const metaThemeColor = document.querySelector("meta[name=theme-color]");
-        if (!metaThemeColor) return;
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            // Se o Android estiver no modo escuro
-            metaThemeColor.setAttribute("content", "#121212");
-        } else {
-            // Se estiver no modo claro
-            metaThemeColor.setAttribute("content", "#007bff");
-        }
-      }
-
-      // Escuta a mudança de tema em tempo real
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ajustarTemaAndroid);
-      ajustarTemaAndroid();
-    </script>
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100vw;
-        height: 100dvh;
-        overflow: hidden;
-        background-color: #000;
-        color-scheme: dark;
-        position: fixed;
-        left: 0;
-        top: 0;
-        touch-action: none;
-        cursor: none !important;
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-        outline: none !important;
-      }
-      #root {
-        width: 100vw;
-        height: 100dvh;
-        position: relative;
-        cursor: none !important;
-      }
-      *:focus {
-        outline: none !important;
-        box-shadow: none !important;
-      }
-    </style>
   </head>
   <body>
-    <div 
-      id="root" 
-      role="main" 
-      aria-label="Aplicativo Acesso Livre - Assistente para Idosos"
-      aria-live="polite"
-    ></div>
-    <script type="module" src="/src/main.tsx?v=2"></script>
-    <noscript>
-      <div style="padding: 2rem; text-align: center; font-family: sans-serif;">
-        <h1>Acesso Livre</h1>
-        <p>Você precisa ativar o JavaScript para usar este assistente de acessibilidade.</p>
-      </div>
-    </noscript>
+    <div id="root"></div>
+    <!-- O Vite gerencia esse arquivo. Se mudar a versão no código, o Vite muda o nome do arquivo final automaticamente -->
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

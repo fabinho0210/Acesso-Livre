@@ -20,13 +20,29 @@
     width: 100vw;
     margin: 0;
     padding: 0;
-    background-color: white;
+    background-color: #000;
+    touch-action: none;
+    cursor: none !important;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  #root {
+    width: 100vw;
+    height: 100dvh;
+    position: relative;
+    cursor: none !important;
   }
 
   /* Accessibility: Visible focus for seniors */
   :focus-visible {
     outline: 4px solid #facc15;
     outline-offset: 4px;
+  }
+
+  *:focus {
+    outline: none !important;
+    box-shadow: none !important;
   }
 }
 
