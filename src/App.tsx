@@ -97,10 +97,18 @@ const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: 
 
 // --- Memoized App Card for performance ---
 const AppCard = React.memo(({ id, app, onClick, lockEdit, removeApp, themeMode, THEMES, isDarkMode, customTheme, trackpadEnabled }: any) => {
+  const handleLongPress = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (!lockEdit && id !== 'app-all') {
+      removeApp(id);
+    }
+  };
+
   return (
     <motion.div 
       id={id}
       onClick={onClick}
+      onContextMenu={handleLongPress}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { onClick(); } }}
       role="listitem"
       aria-label={`Abrir ${app.label}`}
@@ -673,40 +681,59 @@ export default function App() {
   const PRESET_APPS: Record<string, { label: string, color: string, icon: React.ReactNode, type: 'intent' | 'link' | 'tel', value: string }> = useMemo(() => ({
     'phone': { label: t.phone, color: 'bg-[#22c55e]', icon: <Phone size={52} strokeWidth={3} />, type: 'tel', value: 'tel:' },
     'whatsapp': { label: t.whatsapp, color: 'bg-[#10b981]', icon: <MessageSquare size={52} strokeWidth={3} />, type: 'intent', value: 'whatsapp://send' },
-    'camera': { label: t.camera, color: 'bg-blue-400', icon: <Camera size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
+    'camera': { label: t.camera, color: 'bg-[#3b82f6]', icon: <Camera size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end' },
     'browser': { label: t.browser, color: 'bg-[#f97316]', icon: <Search size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end' },
-    'emergency': { label: t.emergency, color: 'bg-red-600', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'tel', value: 'tel:190' },
+    'emergency': { label: t.emergency, color: 'bg-red-700', icon: <AlertCircle size={52} strokeWidth={3} />, type: 'tel', value: 'tel:190' },
     'family': { label: t.family, color: 'bg-purple-600', icon: <Heart size={52} strokeWidth={3} />, type: 'link', value: '#' },
-    'youtube': { label: t.youtube, color: 'bg-red-500', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
-    'facebook': { label: t.facebook, color: 'bg-blue-600', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
+    'youtube': { label: t.youtube, color: 'bg-[#ef4444]', icon: <Youtube size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.youtube' },
+    'facebook': { label: t.facebook, color: 'bg-[#1877f2]', icon: <Facebook size={52} strokeWidth={3} />, type: 'intent', value: 'com.facebook.katana' },
     'instagram': { label: t.instagram, color: 'bg-pink-500', icon: <Instagram size={52} strokeWidth={3} />, type: 'intent', value: 'com.instagram.android' },
-    'gallery': { label: t.gallery, color: 'bg-yellow-400', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.gallery3d' },
-    'maps': { label: t.maps, color: 'bg-green-500', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
+    'gallery': { label: t.gallery, color: 'bg-yellow-500', icon: <LayoutGrid size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.gallery3d' },
+    'maps': { label: t.maps, color: 'bg-green-600', icon: <MapPin size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.apps.maps' },
+    'mail': { label: t.email, color: 'bg-blue-600', icon: <Mail size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_EMAIL;end' },
+    'calculator': { label: t.calc, color: 'bg-zinc-800', icon: <Calculator size={52} strokeWidth={3} />, type: 'intent', value: 'com.android.calculator2' },
+    'calendar': { label: 'AGENDA', color: 'bg-orange-600', icon: <Calendar size={52} strokeWidth={3} />, type: 'intent', value: 'com.google.android.calendar' },
+    'settings': { label: 'AJUSTES', color: 'bg-zinc-500', icon: <Settings size={52} strokeWidth={3} />, type: 'intent', value: 'intent:#Intent;action=android.settings.SETTINGS;end' },
   }), [t]);
 
-  const [visibleAppIds, setVisibleAppIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('launcher_visibleApps');
-    return saved ? JSON.parse(saved) : ['phone', 'whatsapp', 'camera', 'gallery', 'emergency', 'family'];
-  });
+  // --- Persistence Layer (SharedPreferences Equivalent) ---
+  const saveFavorites = useCallback((apps: string[]) => {
+    localStorage.setItem('launcher_visibleApps', JSON.stringify(apps));
+    console.log("Saving to SharedPreferences (localStorage):", apps);
+  }, []);
 
-  const addApp = useCallback((id: string) => {
-    if (!visibleAppIds.includes(id)) {
-      const newIds = [...visibleAppIds, id];
+  const getFavorites = useCallback((): string[] => {
+    const saved = localStorage.getItem('launcher_visibleApps');
+    const defaults = ['phone', 'whatsapp', 'camera', 'gallery', 'emergency', 'family'];
+    try {
+      return saved ? JSON.parse(saved) : defaults;
+    } catch {
+      return defaults;
+    }
+  }, []);
+
+  const [visibleAppIds, setVisibleAppIds] = useState<string[]>(getFavorites);
+
+  const addAppToFavorites = useCallback((id: string) => {
+    const currentFavorites = getFavorites();
+    if (!currentFavorites.includes(id)) {
+      const newIds = [...currentFavorites, id];
       setVisibleAppIds(newIds);
-      localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
-      triggerHaptic([50]);
-      speak(`${t.added} ${PRESET_APPS[id].label}`);
+      saveFavorites(newIds);
+      triggerHaptic([50, 30]);
+      speak(`${t.added} ${PRESET_APPS[id]?.label || id}`);
     }
     setShowAddAppModal(false);
-  }, [visibleAppIds, t, PRESET_APPS, speak, triggerHaptic]);
+  }, [getFavorites, saveFavorites, t, PRESET_APPS, speak, triggerHaptic]);
 
-  const removeApp = useCallback((id: string) => {
-    const newIds = visibleAppIds.filter(appId => appId !== id);
+  const removeAppFromFavorites = useCallback((id: string) => {
+    const currentFavorites = getFavorites();
+    const newIds = currentFavorites.filter(appId => appId !== id);
     setVisibleAppIds(newIds);
-    localStorage.setItem('launcher_visibleApps', JSON.stringify(newIds));
-    triggerHaptic([100]);
+    saveFavorites(newIds);
+    triggerHaptic([100, 50]);
     speak(t.removed);
-  }, [visibleAppIds, t, speak, triggerHaptic]);
+  }, [getFavorites, saveFavorites, t, speak, triggerHaptic]);
 
   const handleAppAction = useCallback((id: string) => {
     const app = PRESET_APPS[id];
@@ -1079,7 +1106,7 @@ export default function App() {
               app={PRESET_APPS[id]}
               onClick={() => handleAppAction(id)}
               lockEdit={lockEdit}
-              removeApp={removeApp}
+              removeApp={removeAppFromFavorites}
               themeMode={themeMode}
               THEMES={THEMES}
               isDarkMode={isDarkMode}
@@ -1388,7 +1415,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Add App Modal - Padronizado */}
+      {/* Add App Modal - Padronizado para Acessibilidade Extrema */}
       <AnimatePresence>
         {showAddAppModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center">
@@ -1399,42 +1426,69 @@ export default function App() {
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="w-full h-full flex flex-col overflow-hidden bg-white text-black"
             >
-              <div className="p-6 bg-blue-500 border-b-[6px] border-black text-white flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 flex items-center justify-center bg-white/20 rounded-2xl border-[4px] border-white/40">
-                    <Plus size={28} strokeWidth={4} />
+              <div className="p-8 bg-blue-600 border-b-[8px] border-black text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 flex items-center justify-center bg-white/20 rounded-[28px] border-[5px] border-white/40">
+                    <Plus size={48} strokeWidth={5} />
                   </div>
-                  <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.addAppTitle}</h2>
+                  <div>
+                    <h2 className="font-black text-4xl sm:text-5xl uppercase tracking-tighter leading-none">{t.addAppTitle}</h2>
+                    <p className="text-xl font-bold opacity-80 uppercase mt-2 tracking-tight">
+                      {language === 'pt-BR' ? 'ESCOLHA UM APLICATIVO' : (language === 'es-ES' ? 'ELIJA UNA APLICACIÓN' : 'CHOOSE AN APPLICATION')}
+                    </p>
+                  </div>
                 </div>
-                <button onClick={() => setShowAddAppModal(false)} className="p-2 bg-white text-black rounded-xl border-[4px] border-black active:translate-y-1 transition-all">
-                  <X size={28} strokeWidth={4} />
-                </button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 bg-gray-50">
-                {Object.entries(PRESET_APPS).filter(([id]) => !visibleAppIds.includes(id)).map(([id, app]) => (
-                  <button 
-                    key={id} 
-                    id={`add-${id}`}
-                    onClick={() => addApp(id)} 
-                    className={cn(
-                      "p-4 rounded-[32px] border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center gap-2 active:translate-y-1 active:shadow-none transition-all",
-                      app.color
-                    )}
-                  >
-                    <div className="scale-110 text-black">{app.icon}</div>
-                    <span className="font-black text-sm uppercase tracking-tighter text-black">{app.label}</span>
-                  </button>
-                ))}
-              </div>
-              
-              <div className="p-6 bg-white border-t-[6px] border-black">
                 <button 
                   onClick={() => setShowAddAppModal(false)} 
-                  className="w-full h-16 bg-red-500 text-white border-[4px] border-black rounded-[24px] font-black uppercase text-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
+                  className="w-20 h-20 bg-white text-black rounded-full border-[6px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:scale-90 transition-all"
                 >
-                  {t.cancel}
+                  <X size={44} strokeWidth={5} />
                 </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-10 grid grid-cols-2 lg:grid-cols-3 gap-10 bg-[#f8fafc] content-start">
+                {Object.entries(PRESET_APPS).map(([id, app]) => {
+                  const isAdded = visibleAppIds.includes(id);
+                  return (
+                    <motion.button 
+                      key={id} 
+                      id={`add-${id}`}
+                      whileTap={{ scale: 0.9, y: 4 }}
+                      onClick={() => isAdded ? removeAppFromFavorites(id) : addAppToFavorites(id)} 
+                      className={cn(
+                        "aspect-square p-4 rounded-[40px] border-[5px] border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center gap-4 transition-all relative",
+                        isAdded ? "bg-zinc-200 border-zinc-400 opacity-80" : app.color
+                      )}
+                      style={isAdded ? { boxShadow: '4px 4px 0px 0px rgba(0,0,0,0.2)' } : {}}
+                    >
+                      {isAdded && (
+                        <div className="absolute -top-3 -right-3 w-12 h-12 bg-green-500 rounded-full border-[4px] border-black flex items-center justify-center z-10 shadow-lg">
+                          <CheckCircle size={32} className="text-white" strokeWidth={4} />
+                        </div>
+                      )}
+                      
+                      <div className={cn("scale-[1.5]", isAdded ? "text-zinc-600" : "text-white")} aria-hidden="true">
+                        {React.cloneElement(app.icon as React.ReactElement, { strokeWidth: 3 })}
+                      </div>
+                      <span className={cn(
+                        "font-black text-2xl md:text-3xl uppercase tracking-tighter text-center leading-none mt-4",
+                        isAdded ? "text-zinc-600" : "text-white"
+                      )}>
+                        {app.label}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Dica de Segurança / Rodapé */}
+              <div className="bg-yellow-400 p-6 border-t-[8px] border-black flex items-center gap-4 shrink-0">
+                <HelpCircle size={40} className="text-black shrink-0" strokeWidth={3} />
+                <p className="font-black text-lg sm:text-xl text-black uppercase leading-tight">
+                  {t.language === 'pt-BR' 
+                    ? 'Toque para adicionar à tela inicial. Segure um ícone na tela inicial para remover.' 
+                    : 'Tap to add to home. Long press on home to remove.'}
+                </p>
               </div>
             </motion.div>
           </motion.div>
@@ -1532,6 +1586,30 @@ export default function App() {
                   </div>
                 </section>
                 
+                {/* SISTEMA E PADRÃO */}
+                <section>
+                  <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2 text-current px-2"><Smartphone size={16}/> {t.systemTitle || "Sistema"}</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <button 
+                      onClick={() => {
+                        triggerHaptic([50, 50]);
+                        // Intent para abrir as configurações de Home do Android
+                        window.location.href = 'intent:#Intent;action=android.settings.HOME_SETTINGS;end';
+                        speak(language === 'pt-BR' ? 'Abrindo configurações de início' : 'Opening home settings');
+                      }}
+                      className="min-h-[100px] p-6 rounded-[24px] border-[4px] border-black bg-white text-black flex items-center gap-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
+                    >
+                      <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center border-4 border-black text-white shrink-0">
+                        <Home size={32} strokeWidth={3} />
+                      </div>
+                      <div className="text-left">
+                        <span className="block font-black text-2xl uppercase tracking-tighter leading-none">Definir como Padrão</span>
+                        <span className="block font-bold text-sm opacity-60 uppercase mt-1">Para o botão Home sempre voltar aqui</span>
+                      </div>
+                    </button>
+                  </div>
+                </section>
+
                 <div className="pt-8 pb-4 text-center">
                   <p className="font-black text-xs opacity-30 uppercase tracking-widest">Acesso Livre v{VERSION}</p>
                 </div>
