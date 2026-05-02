@@ -67,14 +67,28 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - **Flashlight:** A dedicated button in the bottom bar toggles the device flashlight (simulated via a visual overlay).
 - **Assistance Feedback:** When voice commands are active, a pulsating animation (scale and glow) is applied to the microphone icon, and a "Listening" indicator with frequency-bars is displayed on the trackpad area.
 
-### Android Intents
+### Android Intents & Compatibility (API 30+)
 - **General Launcher:** `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`.
 - **Camera:** `intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end`.
 - **Browser:** `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end`.
 - **WhatsApp:** `intent://send#Intent;package=com.whatsapp;scheme=whatsapp;end`.
 - **Specific Apps:** `intent://#Intent;package={packageName};scheme=https;end`.
+- **Queries Tag:** Mandatory in `AndroidManifest.xml` with `ACTION_MAIN` and `CATEGORY_LAUNCHER` for API 30+.
+- **QUERY_ALL_PACKAGES:** Required for full app listing in Launcher category.
 
-## 5. Persistence Map (LocalStorage)
+## 5. Persistence & Delivery (Critical)
+
+### Persistence Layer
+- Simulated SharedPreferences using `localStorage`.
+- `saveFavorites(apps)` / `getFavorites()` abstraction.
+- Automatic recovery of defaults if `localStorage` is corrupted.
+
+### Cache Prevention (GitHub Pages/PWA)
+- Meta tags: `no-cache`, `no-store`, `must-revalidate`.
+- Script versioning: `src/main.js?v={timestamp}`.
+- Service Worker: Active script to unregister and clear previous caches on load.
+
+## 6. Persistence Map (LocalStorage)
 - `launcher_visibleApps`: JSON array of app IDs.
 - `launcher_lockEdit`: Boolean (Safety Lock / Modo Configuração).
 - `launcher_dwellEnabled`: Boolean.
@@ -92,9 +106,13 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - `launcher_themeMode`: String (preset names or 'custom').
 - `launcher_customTheme`: JSON object for user colors.
 
-## 6. Implementation Checklist
+## 7. Implementation Checklist
 - [x] Implement the cursor on z-index 1000+.
 - [x] All interactive elements must have a unique `id`.
 - [x] Use `AnimatePresence` for modal transitions.
 - [x] Trigger haptic feedback on state changes and successful clicks.
 - [x] Ensure `viewport` meta prevents manual zoom and forces auto-scaling.
+- [x] Implement Persistence Layer for Favorite Apps (localStorage).
+- [x] Add Long Press (ContextMenu) for app deletion.
+- [x] Document Android API 30+ Compatibility requirements.
+- [x] Implement Cache Prevention and SW Cleanup.
