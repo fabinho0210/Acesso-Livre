@@ -127,7 +127,9 @@ const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: 
   };
 
   return (
-    <div className={cn(
+    <div 
+      aria-label={`Hora atual: ${time.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}. Data: ${time.toLocaleDateString(language, { weekday: 'long', day: '2-digit', month: 'long' })}`}
+      className={cn(
       "flex-1 flex flex-col items-center justify-center text-center border-[4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] px-4 sm:px-8 py-2 rounded-[24px] min-w-0 transition-colors cursor-pointer",
       themeMode === 'custom' ? "bg-white border-black text-black" : (THEMES[themeMode]?.uiBg + " " + THEMES[themeMode]?.cardBorder + " " + THEMES[themeMode]?.text)
     )} onClick={() => {
@@ -1102,7 +1104,6 @@ export default function App() {
         }
       }}
       style={{ 
-        fontSize: `${fontSize}px`,
         ...(themeMode === 'custom' ? currentThemeStyles.background : {}),
         cursor: 'none'
       }}
@@ -1191,7 +1192,7 @@ export default function App() {
         )}
         style={themeMode === 'custom' ? { backgroundColor: customTheme.bg } : {}}
       >
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-12" role="list" aria-label="Lista de aplicativos disponíveis">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-12" role="list" aria-label="Lista de aplicativos favoritos">
           {visibleAppIds.map((id) => (
             <AppCard 
               key={id}
@@ -1365,7 +1366,9 @@ export default function App() {
                   </div>
                   <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
                 </div>
-                <button onClick={() => setShowAccessModal(false)} className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
+                <button 
+              id="access-close-btn"
+              onClick={() => setShowAccessModal(false)} aria-label="Botão para fechar o menu de acessibilidade" className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
               </div>
               
               <div className="flex-1 p-6 sm:p-10 overflow-y-auto overflow-x-hidden space-y-12 pb-36 custom-scrollbar box-border">
@@ -1430,8 +1433,8 @@ export default function App() {
                 <section>
                   <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Volume2 size={16}/> {t.hearing}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setVibrateOnTouch(!vibrateOnTouch)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", vibrateOnTouch ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><Smartphone size={32} /><span className="font-black uppercase text-[10px]">{t.vibrateTouch}</span></button>
-                    <button onClick={handleFlash} className="h-28 rounded-2xl border-[4px] border-black bg-yellow-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Zap size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.flashAlert}</span></button>
+                    <button onClick={() => setVibrateOnTouch(!vibrateOnTouch)} aria-label={vibrateOnTouch ? "Botão para desativar vibrar ao toque" : "Botão para ativar vibrar ao toque"} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", vibrateOnTouch ? "bg-green-400 text-black shadow-none" : "bg-gray-100 text-black")}><Smartphone size={32} /><span className="font-black uppercase text-[10px]">{t.vibrateTouch}</span></button>
+                    <button onClick={handleFlash} aria-label="Botão para testar o flash de alerta" className="h-28 rounded-2xl border-[4px] border-black bg-yellow-400 flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><Zap size={32} className="text-black" /><span className="font-black uppercase text-[10px] text-black">{t.flashAlert}</span></button>
                   </div>
                 </section>
 
@@ -1464,7 +1467,7 @@ export default function App() {
                         setShowCursor(newState);
                         localStorage.setItem('launcher_showCursor', String(newState));
                         triggerHaptic([50]);
-                      }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", showCursor ? "bg-orange-400 shadow-none" : "bg-gray-100")}>
+                      }} aria-label={showCursor ? "Botão para esconder a seta virtual" : "Botão para mostrar a seta virtual"} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", showCursor ? "bg-orange-400 shadow-none" : "bg-gray-100")}>
                         <Smartphone size={32} />
                         <span className="font-black uppercase text-[10px]">{t.showCursor} {showCursor ? 'On' : 'Off'}</span>
                       </button>
@@ -1476,16 +1479,18 @@ export default function App() {
                 <section>
                   <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><HelpCircle size={16}/> {t.help}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setShowMedicalInfo(true)} className="h-28 rounded-2xl border-[4px] border-black bg-red-500 text-white flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><HeartPulse size={32}/><span className="font-black uppercase text-[10px]">{t.medicalInfo}</span></button>
-                    <button onClick={handleWhereAmI} className="h-28 rounded-2xl border-[4px] border-black bg-purple-400 text-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><MapPin size={32}/><span className="font-black uppercase text-[10px]">{t.whereAmI}</span></button>
+                    <button onClick={() => setShowMedicalInfo(true)} aria-label="Botão para abrir a ficha médica de emergência" className="h-28 rounded-2xl border-[4px] border-black bg-red-500 text-white flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><HeartPulse size={32}/><span className="font-black uppercase text-[10px]">{t.medicalInfo}</span></button>
+                    <button onClick={handleWhereAmI} aria-label="Botão para consultar seu endereço atual" className="h-28 rounded-2xl border-[4px] border-black bg-purple-400 text-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><MapPin size={32}/><span className="font-black uppercase text-[10px]">{t.whereAmI}</span></button>
                   </div>
-                  {locationText && <div className="mt-4 p-4 bg-yellow-100 border-4 border-black font-black text-[12px] uppercase text-black leading-tight shadow-md">{locationText}</div>}
+                  {locationText && <div className="mt-4 p-4 bg-yellow-100 border-4 border-black font-black text-[12px] uppercase text-black leading-tight shadow-md" aria-live="polite">{locationText}</div>}
                 </section>
                 <div className="h-10 shrink-0" />
               </div>
 
               <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
-                <button onClick={() => setShowAccessModal(false)} aria-label="Botão para fechar o menu de acessibilidade" className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
+                <button 
+                  id="access-modal-footer-close-btn"
+                  onClick={() => setShowAccessModal(false)} aria-label="Botão para fechar o menu de acessibilidade" className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
@@ -1516,6 +1521,7 @@ export default function App() {
                   </div>
                 </div>
                 <button 
+                  id="add-app-modal-close-btn"
                   onClick={() => setShowAddAppModal(false)} 
                   aria-label="Botão para fechar a seleção de aplicativos"
                   className="w-20 h-20 bg-white text-black rounded-full border-[6px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:scale-90 transition-all"
@@ -1524,13 +1530,15 @@ export default function App() {
                 </button>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-10 grid grid-cols-2 lg:grid-cols-3 gap-10 bg-[#f8fafc] content-start">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-10 bg-[#f8fafc] content-start" role="list" aria-label="Lista completa de aplicativos para adicionar">
                 {Object.entries(PRESET_APPS).map(([id, app]) => {
                   const isAdded = visibleAppIds.includes(id);
                   return (
                     <motion.button 
                       key={id} 
                       id={`add-${id}`}
+                      role="listitem"
+                      aria-label={`${isAdded ? 'Remover' : 'Adicionar'} ${app.label}`}
                       whileTap={{ scale: 0.9, y: 4 }}
                       onClick={() => isAdded ? removeAppFromFavorites(id) : addAppToFavorites(id)} 
                       className={cn(
@@ -1589,7 +1597,9 @@ export default function App() {
                   </div>
                   <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
                 </div>
-                <button onClick={() => setShowMedicalInfo(false)} aria-label="Botão para fechar a ficha médica" className="bg-white text-black p-2 rounded-xl border-[4px] border-black"><X size={28}/></button>
+                <button 
+                  id="medical-info-close-top-btn"
+                  onClick={() => setShowMedicalInfo(false)} aria-label="Botão para fechar a ficha médica" className="bg-white text-black p-2 rounded-xl border-[4px] border-black"><X size={28}/></button>
               </div>
               <div className="flex-1 p-6 space-y-6 overflow-y-auto" aria-live="off">
                 <div className="bg-black/20 p-5 rounded-[24px] border-2 border-white/30">
@@ -1609,7 +1619,9 @@ export default function App() {
                 </div>
               </div>
               <div className="p-6 bg-red-700 border-t-[6px] border-black">
-                <button onClick={() => setShowMedicalInfo(false)} className="w-full h-16 bg-white text-black rounded-[24px] border-[4px] border-black font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
+                <button 
+                  id="medical-info-close-bottom-btn"
+                  onClick={() => setShowMedicalInfo(false)} aria-label="Botão para fechar a ficha médica" className="w-full h-16 bg-white text-black rounded-[24px] border-[4px] border-black font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
@@ -1638,7 +1650,9 @@ export default function App() {
                   </div>
                   <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.settings}</h2>
                 </div>
-                <button onClick={() => setShowSettingsModal(false)} className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
+                <button 
+                  id="settings-close-btn"
+                  onClick={() => setShowSettingsModal(false)} aria-label="Botão para fechar as configurações" className={cn("p-3 rounded-2xl border-[4px] border-black active:translate-y-1 flex-shrink-0", themeMode === 'custom' ? "bg-transparent" : "bg-white text-black")}><X size={32} strokeWidth={3} /></button>
               </div>
               
               <div className="flex-1 p-6 sm:p-10 overflow-y-auto space-y-8 pb-36 custom-scrollbar">
@@ -1649,7 +1663,9 @@ export default function App() {
                     {(['pt-BR', 'en-US', 'es-ES'] as Language[]).map((lang) => (
                       <button 
                         key={lang}
+                        id={`lang-btn-${lang}`}
                         onClick={() => changeLanguage(lang)}
+                        aria-label={`Mudar idioma para ${lang === 'pt-BR' ? 'Português' : lang === 'en-US' ? 'Inglês' : 'Espanhol'}`}
                         className={cn(
                           "min-h-[80px] p-4 rounded-2xl border-[4px] border-black flex items-center justify-between font-black uppercase shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all",
                           language === lang ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-white text-black"
@@ -1694,7 +1710,9 @@ export default function App() {
               </div>
 
               <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
-                <button onClick={() => setShowSettingsModal(false)} aria-label="Botão para fechar as configurações" className="w-full h-16 sm:h-20 bg-blue-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
+                <button 
+                  id="settings-modal-footer-close-btn"
+                  onClick={() => setShowSettingsModal(false)} aria-label="Botão para fechar as configurações" className="w-full h-16 sm:h-20 bg-blue-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
