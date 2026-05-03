@@ -8,9 +8,16 @@
 
 @layer base {
   :root {
-    font-size: 16px; /* Base scaling for REM units */
+    font-size: 100%; /* Respect system settings */
     @media (min-width: 768px) {
-      font-size: 18px;
+      font-size: 110%;
+    }
+  }
+
+  /* Support for dark mode preferences */
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: #0f172a;
     }
   }
 

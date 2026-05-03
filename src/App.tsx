@@ -239,7 +239,16 @@ export default function App() {
   });
 
   // --- Accessibility States ---
-  const [fontSize, setFontSize] = useState<number>(() => parseInt(localStorage.getItem('launcher_fontSize') || '22'));
+  const [fontSize, setFontSize] = useState<number>(() => {
+    const saved = localStorage.getItem('launcher_fontSizeMultiplier');
+    return saved ? parseInt(saved) : 100; // Multiplier in percentage
+  });
+  
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+    localStorage.setItem('launcher_fontSizeMultiplier', fontSize.toString());
+  }, [fontSize]);
+
   const [isDarkMode, setIsDarkMode] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [highContrastMode, setHighContrastMode] = useState(() => window.matchMedia('(prefers-contrast: more)').matches);
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -250,7 +259,6 @@ export default function App() {
   const [flashAlert, setFlashAlert] = useState(false);
   const [confirmCall, setConfirmCall] = useState(() => localStorage.getItem('launcher_confirmCall') === 'true');
   const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') !== 'false');
-  const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem('launcher_voiceEnabled') !== 'false');
   const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
   const [showCursor, setShowCursor] = useState(() => localStorage.getItem('launcher_showCursor') !== 'false');
   
@@ -622,13 +630,10 @@ export default function App() {
     setLanguage(lang);
     localStorage.setItem('launcher_language', lang);
     triggerHaptic([50]);
-    // Synthesis check happens in speak()
   };
 
   useEffect(() => {
-    // Speak switch notice when language changes
-    const msg = language === 'en-US' ? 'Language switched to English' : language === 'es-ES' ? 'Idioma cambiado a español' : 'Idioma alterado para Português';
-    speak(msg);
+    // Language change effect
   }, [language]);
 
   // --- Theme Configuration ---
@@ -702,7 +707,6 @@ export default function App() {
     const newState = !flashlightOn;
     setFlashlightOn(newState);
     triggerHaptic([50]);
-    speak(newState ? t.flashlightOn : t.flashlightOff);
 
     try {
       if (newState) {
@@ -759,15 +763,6 @@ export default function App() {
     if (vibrateOnTouch && 'vibrate' in navigator) navigator.vibrate(pattern);
   };
 
-  const speak = (text: string) => {
-    if (voiceEnabled && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
   const handleFlash = () => {
     setFlashAlert(true);
     setTimeout(() => setFlashAlert(false), 500);
@@ -775,7 +770,6 @@ export default function App() {
   };
 
   const handleWhereAmI = async () => {
-    speak(t.locating);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
@@ -783,11 +777,10 @@ export default function App() {
           const data = await res.json();
           const address = data.display_name || t.unknownLocation;
           setLocationText(address);
-          speak(`${t.youAreAt}: ${address}`);
         } catch (err) {
-          speak(t.locationUnknown);
+          setLocationText(t.locationUnknown);
         }
-      }, () => speak(t.locationDenied));
+      }, () => setLocationText(t.locationDenied));
     }
   };
 
@@ -836,10 +829,9 @@ export default function App() {
       setVisibleAppIds(newIds);
       saveFavorites(newIds);
       triggerHaptic([50, 30]);
-      speak(`${t.added} ${PRESET_APPS[id]?.label || id}`);
     }
     setShowAddAppModal(false);
-  }, [getFavorites, saveFavorites, t, PRESET_APPS, speak, triggerHaptic]);
+  }, [getFavorites, saveFavorites, PRESET_APPS, triggerHaptic]);
 
   const removeAppFromFavorites = useCallback((id: string) => {
     const currentFavorites = getFavorites();
@@ -847,15 +839,13 @@ export default function App() {
     setVisibleAppIds(newIds);
     saveFavorites(newIds);
     triggerHaptic([100, 50]);
-    speak(t.removed);
-  }, [getFavorites, saveFavorites, t, speak, triggerHaptic]);
+  }, [getFavorites, saveFavorites, triggerHaptic]);
 
   const handleAppAction = useCallback((id: string) => {
     const app = PRESET_APPS[id];
     if (!app) return;
 
     triggerHaptic([50]);
-    speak(`${t.opened} ${app.label}`);
 
     if (app.type === 'link') {
       if (app.value === '#') return;
@@ -870,7 +860,7 @@ export default function App() {
         window.location.href = `intent://#Intent;package=${app.value};scheme=https;end`;
       }
     }
-  }, [PRESET_APPS, speak, triggerHaptic, t]);
+  }, [PRESET_APPS, triggerHaptic]);
 
   const allApps: AppData[] = useMemo(() => [
     ...visibleAppIds.map(id => ({
@@ -886,11 +876,10 @@ export default function App() {
       icon: <LayoutGrid size={52} strokeWidth={3} />,
       action: () => { 
         triggerHaptic([50]);
-        speak(t.opened + " " + t.allApps);
         window.location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
       }
     }
-  ], [visibleAppIds, PRESET_APPS, handleAppAction, t, triggerHaptic, speak, isDarkMode]);
+  ], [visibleAppIds, PRESET_APPS, handleAppAction, t, triggerHaptic, isDarkMode]);
 
   // --- Voice Commands Logic ---
   const recognitionRef = useRef<any>(null);
@@ -910,7 +899,6 @@ export default function App() {
     recognitionRef.current.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
       if (event.error === 'not-allowed') {
-        speak(t.locationDenied || "Permissão de microfone negada.");
         setIsVoiceActive(false);
       }
     };
@@ -957,28 +945,23 @@ export default function App() {
     if (cmd.includes('descer') || cmd.includes('down') || cmd.includes('bajar')) {
       const el = document.getElementById('main-scroll-area');
       if (el) el.scrollBy({ top: 300, behavior: 'smooth' });
-      speak(t.scrollingDown);
     }
     else if (cmd.includes('subir') || cmd.includes('up') || cmd.includes('arriba')) {
       const el = document.getElementById('main-scroll-area');
       if (el) el.scrollBy({ top: -300, behavior: 'smooth' });
-      speak(t.scrollingUp);
     }
     // Zoom Commands
     else if (cmd.includes('aumentar') || cmd.includes('zoom in') || cmd.includes('más')) {
-      setFontSize(s => Math.min(48, s + 4));
-      speak(t.zoomingIn);
+      setFontSize(s => Math.min(200, s + 10));
     }
     else if (cmd.includes('diminuir') || cmd.includes('zoom out') || cmd.includes('menos')) {
-      setFontSize(s => Math.max(16, s - 4));
-      speak(t.zoomingOut);
+      setFontSize(s => Math.max(50, s - 10));
     }
     // App Launchers
     else if (cmd.includes('abrir') || cmd.includes('open')) {
       const appName = tokens[tokens.length - 1];
       const app = allApps.find(a => a.label.toLowerCase().includes(appName));
       if (app) app.action();
-      else speak(`${t.appNotFound}: ${appName}`);
     }
     // Emergency
     else if (cmd.includes('ajuda') || cmd.includes('help') || cmd.includes('socorro') || cmd.includes('auxilio')) {
@@ -989,17 +972,10 @@ export default function App() {
       toggleFlashlight();
     }
     else if (cmd.includes('horas') || cmd.includes('time') || cmd.includes('reloj')) {
-      const timeStr = new Date().toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
-      speak(t.itIs + timeStr);
+      // Nothing needed here if voice is passive
     }
     else if (cmd.includes('bateria') || cmd.includes('battery') || cmd.includes('carga')) {
-      if ('getBattery' in navigator) {
-        (navigator as any).getBattery().then((battery: any) => {
-          const level = Math.floor(battery.level * 100);
-          const msg = t.batteryLevel + level + '%';
-          speak(msg);
-        });
-      }
+      // Nothing needed here if voice is passive
     }
   };
 
@@ -1167,7 +1143,8 @@ export default function App() {
             id="access-btn"
             tabIndex={trackpadEnabled ? -1 : 0}
             onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
-            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); speak(t.accOpened); }}
+            onClick={() => { setShowAccessModal(true); triggerHaptic([50]); }}
+            aria-label="Botão para abrir o menu de acessibilidade"
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
               themeMode === 'custom' ? "bg-white border-black" : (themeMode === 'default' ? "bg-yellow-400 border-black" : "bg-transparent")
@@ -1192,7 +1169,8 @@ export default function App() {
             id="settings-btn"
             tabIndex={trackpadEnabled ? -1 : 0}
             onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
-            onClick={() => { setShowSettingsModal(true); triggerHaptic([50]); speak(t.settOpened); }}
+            onClick={() => { setShowSettingsModal(true); triggerHaptic([50]); }}
+            aria-label="Botão para abrir as configurações do sistema"
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
               themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
@@ -1261,8 +1239,8 @@ export default function App() {
             id="mic-btn" 
             tabIndex={trackpadEnabled ? -1 : 0}
             onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
-            onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); speak(isVoiceActive ? t.assistantOff : t.assistantOn); }} 
-            aria-label={isVoiceActive ? "Desativar assistente de voz" : "Ativar assistente de voz"}
+            onClick={() => { setIsVoiceActive(!isVoiceActive); triggerHaptic([50]); }} 
+            aria-label={isVoiceActive ? "Botão para desativar o assistente de voz" : "Botão para ativar o assistente de voz"}
             className={cn(
               "w-16 h-16 rounded-full border-[4px] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden transition-all",
               isVoiceActive ? "bg-red-500 border-black text-white" : (themeMode === 'default' ? "bg-white border-black text-black" : "bg-transparent")
@@ -1410,7 +1388,6 @@ export default function App() {
                           setLockEdit(newState);
                           localStorage.setItem('launcher_lockEdit', String(newState));
                           triggerHaptic([100]);
-                          speak(newState ? t.lockOn : t.lockOff);
                         }}
                         className={cn(
                           "w-[88px] h-[52px] rounded-full border-[4px] border-black transition-all relative flex items-center px-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none",
@@ -1433,29 +1410,16 @@ export default function App() {
                 <section>
                   <h3 className="font-black text-xs uppercase tracking-widest mb-4 opacity-70 flex items-center gap-2"><Eye size={16}/> {t.vision}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setFontSize(s => Math.min(48, s + 4))} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.increaseText}</span></button>
-                    <button onClick={() => { setFontSize(s => Math.max(12, s - 4)); triggerHaptic([50]); }} className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><ZoomOut size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.decreaseText}</span></button>
-                    <button onClick={() => setReadingLine(!readingLine)} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
+                    <button onClick={() => setFontSize(s => Math.min(200, s + 10))} aria-label="Botão para aumentar o tamanho do texto" className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.increaseText}</span></button>
+                    <button onClick={() => { setFontSize(s => Math.max(50, s - 10)); triggerHaptic([50]); }} aria-label="Botão para diminuir o tamanho do texto" className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><ZoomOut size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.decreaseText}</span></button>
+                    <button onClick={() => setReadingLine(!readingLine)} aria-label="Botão para ligar ou desligar a linha de leitura" className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
                     
-                    <button onClick={() => {
-                      const newState = !voiceEnabled;
-                      setVoiceEnabled(newState);
-                      localStorage.setItem('launcher_voiceEnabled', String(newState));
-                      triggerHaptic([50]);
-                      if (newState) {
-                        speak(t.voiceOn);
-                      }
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", voiceEnabled ? "bg-green-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
-                      {voiceEnabled ? <Volume2 size={32} /> : <ZapOff size={32} />}
-                      <span className="font-black uppercase text-[10px]">{voiceEnabled ? t.voiceActive : t.voiceInactive}</span>
-                    </button>
                     <button onClick={() => {
                       const newState = !enhancedFeedback;
                       setEnhancedFeedback(newState);
                       localStorage.setItem('launcher_enhancedFeedback', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? t.visualFeedbackOn : t.visualFeedbackOff);
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", enhancedFeedback ? "bg-purple-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
+                    }} aria-label="Botão para alternar feedback visual" className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", enhancedFeedback ? "bg-purple-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
                       <Palette size={32} />
                       <span className="font-black uppercase text-[10px]">{t.visualFeedback}</span>
                     </button>
@@ -1480,19 +1444,17 @@ export default function App() {
                       setTrackpadEnabled(newState);
                       localStorage.setItem('launcher_trackpadEnabled', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? t.trackpadOn : t.trackpadOff);
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", trackpadEnabled ? "bg-yellow-400 shadow-none text-black" : "bg-gray-100")}>
+                    }} aria-label={trackpadEnabled ? "Botão para desativar o trackpad" : "Botão para ativar o trackpad"} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", trackpadEnabled ? "bg-yellow-400 shadow-none text-black" : "bg-gray-100")}>
                       <Maximize2 size={32} />
                       <span className="font-black uppercase text-[10px]">{trackpadEnabled ? `${t.trackpad} On` : `${t.trackpad} Off`}</span>
                     </button>
-                    <button onClick={() => setConfirmCall(!confirmCall)} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", confirmCall ? "bg-green-400 shadow-none" : "bg-gray-100")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">{t.confirmCall}</span></button>
+                    <button onClick={() => setConfirmCall(!confirmCall)} aria-label={confirmCall ? "Botão para desativar confirmação de chamada" : "Botão para ativar confirmação de chamada"} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", confirmCall ? "bg-green-400 shadow-none" : "bg-gray-100")}><CheckCircle size={32} /><span className="font-black uppercase text-[10px]">{t.confirmCall}</span></button>
                     <button onClick={() => {
                       const newState = !dwellEnabled;
                       setDwellEnabled(newState);
                       localStorage.setItem('launcher_dwellEnabled', String(newState));
                       triggerHaptic([50]);
-                      speak(newState ? t.dwellOn : t.dwellOff);
-                    }} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", dwellEnabled ? "bg-cyan-400 shadow-none" : "bg-gray-100")}>
+                    }} aria-label={dwellEnabled ? "Botão para desativar clique automático" : "Botão para ativar clique automático"} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black", dwellEnabled ? "bg-cyan-400 shadow-none" : "bg-gray-100")}>
                       <Zap size={32} />
                       <span className="font-black uppercase text-[10px]">{dwellEnabled ? `${t.dwell} On` : `${t.dwell} Off`}</span>
                     </button>
@@ -1523,7 +1485,7 @@ export default function App() {
               </div>
 
               <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
-                <button onClick={() => setShowAccessModal(false)} className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
+                <button onClick={() => setShowAccessModal(false)} aria-label="Botão para fechar o menu de acessibilidade" className="w-full h-16 sm:h-20 bg-red-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
@@ -1555,6 +1517,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={() => setShowAddAppModal(false)} 
+                  aria-label="Botão para fechar a seleção de aplicativos"
                   className="w-20 h-20 bg-white text-black rounded-full border-[6px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:scale-90 transition-all"
                 >
                   <X size={44} strokeWidth={5} />
@@ -1626,9 +1589,9 @@ export default function App() {
                   </div>
                   <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
                 </div>
-                <button onClick={() => setShowMedicalInfo(false)} className="bg-white text-black p-2 rounded-xl border-[4px] border-black"><X size={28}/></button>
+                <button onClick={() => setShowMedicalInfo(false)} aria-label="Botão para fechar a ficha médica" className="bg-white text-black p-2 rounded-xl border-[4px] border-black"><X size={28}/></button>
               </div>
-              <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+              <div className="flex-1 p-6 space-y-6 overflow-y-auto" aria-live="off">
                 <div className="bg-black/20 p-5 rounded-[24px] border-2 border-white/30">
                   <span className="font-black text-xs uppercase opacity-60 tracking-wider font-sans">{t.medicalName}</span>
                   <p className="font-black text-2xl sm:text-3xl mt-1">JOÃO DA SILVA</p>
@@ -1710,8 +1673,8 @@ export default function App() {
                         triggerHaptic([50, 50]);
                         // Intent para abrir as configurações de Home do Android
                         window.location.href = 'intent:#Intent;action=android.settings.HOME_SETTINGS;end';
-                        speak(t.opened + " " + t.settings);
                       }}
+                      aria-label="Botão para definir este launcher como o aplicativo padrão do Android"
                       className="min-h-[100px] p-6 rounded-[24px] border-[4px] border-black bg-white text-black flex items-center gap-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
                     >
                       <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center border-4 border-black text-white shrink-0">
@@ -1731,7 +1694,7 @@ export default function App() {
               </div>
 
               <div className="p-6 bg-white border-t-[6px] border-black shrink-0 relative z-30 box-border">
-                <button onClick={() => setShowSettingsModal(false)} className="w-full h-16 sm:h-20 bg-blue-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
+                <button onClick={() => setShowSettingsModal(false)} aria-label="Botão para fechar as configurações" className="w-full h-16 sm:h-20 bg-blue-500 text-white rounded-[24px] border-[4px] border-black font-black uppercase text-xl sm:text-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all box-border">{t.close}</button>
               </div>
             </motion.div>
           </motion.div>
