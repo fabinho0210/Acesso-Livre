@@ -72,7 +72,7 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - `font_size`: Float for dynamic text scaling (Default: 22f).
 
 ## 7. Build & Deployment (CI/CD)
-- **Environment:** Node.js 22+ for the deployment runner.
+- **Environment:** Node.js 24+ for the deployment runner.
 - **Build Script:** Native Android build is handled via Gradle (`./gradlew assembleDebug`).
 - **PWA Mirroring:** The `index.html` in the root acts as a fallback landing page for the GitHub Pages deployment to prevent 404 errors during distribution.
 
