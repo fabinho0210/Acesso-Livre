@@ -30,7 +30,6 @@
     padding: 0;
     background-color: #000;
     touch-action: none;
-    cursor: none !important;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
   }
@@ -81,7 +80,6 @@
     height: 100vh;
     height: 100dvh;
     position: relative;
-    cursor: none !important;
   }
 
   /* Accessibility: Visible focus for seniors */

@@ -261,9 +261,9 @@ export default function App() {
   const [readingLine, setReadingLine] = useState(false);
   const [flashAlert, setFlashAlert] = useState(false);
   const [confirmCall, setConfirmCall] = useState(() => localStorage.getItem('launcher_confirmCall') === 'true');
-  const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') !== 'false');
-  const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
-  const [showCursor, setShowCursor] = useState(() => localStorage.getItem('launcher_showCursor') !== 'false');
+  const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') === 'true');
+  const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') === 'true');
+  const [showCursor, setShowCursor] = useState(() => localStorage.getItem('launcher_showCursor') === 'true');
   
   useEffect(() => {
     localStorage.setItem('launcher_colorblindMode', String(colorblindMode));
