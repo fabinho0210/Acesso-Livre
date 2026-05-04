@@ -14,31 +14,64 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+
 @Composable
 fun TrackpadArea(
     onMove: (Float, Float) -> Unit,
+    isListening: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val trackpadAlpha by animateFloatAsState(if (isListening) 1.0f else 0.7f, label = "trackpadAlpha")
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(280.dp)
             .padding(16.dp)
-            .background(Color.Black, RoundedCornerShape(32.dp))
+            .clip(RoundedCornerShape(32.dp))
+            .background(Color.Black.copy(alpha = 0.9f))
+            .alpha(trackpadAlpha)
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
-                    // dx e dy normalizados para sensibilidade
-                    onMove(dragAmount.x / 1200f, dragAmount.y / 2400f)
+                    // Sensibilidade dinâmica baseada em DPI ou constante para facilitar
+                    onMove(dragAmount.x / 1400f, dragAmount.y / 2800f)
                 }
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            "CONTROLE O CURSOR",
-            color = Color.White.copy(alpha = 0.5f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Black
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (isListening) {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(Color(0xFFFACC15).copy(alpha = 0.2f), RoundedCornerShape(30.dp))
+                ) {
+                    Text(
+                        "OUVINDO...",
+                        color = Color(0xFFFACC15),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+            
+            Text(
+                "ÁREA DE CONTROLE",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                "DESLIZE PARA MOVER O CURSOR",
+                color = Color.White.copy(alpha = 0.4f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }

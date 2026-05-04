@@ -32,8 +32,19 @@ fun CursorOverlay(
         )
 
         if (progress > 0) {
+            // Shadow / Outline for arc
             drawArc(
-                color = Color(0xFFFACC15),
+                color = Color.Black,
+                startAngle = -90f,
+                sweepAngle = (progress / 100f) * 360f,
+                useCenter = false,
+                topLeft = Offset(screenX - radius - 2f, screenY - radius - 2f),
+                size = androidx.compose.ui.geometry.Size(radius * 2 + 4f, radius * 2 + 4f),
+                style = Stroke(width = 8.dp.toPx())
+            )
+            
+            drawArc(
+                color = Color(0xFF4ADE80),
                 startAngle = -90f,
                 sweepAngle = (progress / 100f) * 360f,
                 useCenter = false,

@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.acessolivre.launcher"
-        minSdk 26
+        minSdk 21
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -21,7 +21,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -50,6 +51,12 @@ dependencies {
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
     
-    // Icones do Android (Lucide-like)
+    // Carregamento de imagem assíncrono (Performance e Memória)
+    implementation "io.coil-kt:coil-compose:2.5.0"
+    
+    // Persistência e JSON
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
+    // Icones do Android
     implementation "androidx.compose.material:material-icons-extended"
 }
