@@ -9,10 +9,13 @@ import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.acessolivre.launcher.data.AppPreferences
 import com.acessolivre.launcher.ui.components.RectData
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -115,18 +118,23 @@ class LauncherViewModel(context: Context) : ViewModel() {
         } catch (e: Exception) {
             _isFlashlightOn.value = false
         }
+    }
+
     fun loadAllApps(context: Context) {
-        val pm = context.packageManager
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER)
-        
-        val resolvedInfos = pm.queryIntentActivities(mainIntent, 0)
-        val fullList = resolvedInfos.map {
-            AppInfo(it.loadLabel(pm).toString(), it.activityInfo.packageName, it.loadIcon(pm))
-        }.sortedBy { it.label.lowercase() }
-        
-        _allApps.value = fullList
-        val savedFavs = prefs.getFavorites()
-        _favoriteApps.value = fullList.filter { savedFavs.contains(it.packageName) }
+        // Usa thread secundária para não travar a UI em celulares básicos
+        viewModelScope.launch(Dispatchers.IO) {
+            val pm = context.packageManager
+            val mainIntent = Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER)
+            
+            val resolvedInfos = pm.queryIntentActivities(mainIntent, 0)
+            val fullList = resolvedInfos.map {
+                AppInfo(it.loadLabel(pm).toString(), it.activityInfo.packageName, it.loadIcon(pm))
+            }.sortedBy { it.label.lowercase() }
+            
+            _allApps.value = fullList
+            val savedFavs = prefs.getFavorites()
+            _favoriteApps.value = fullList.filter { savedFavs.contains(it.packageName) }
+        }
     }
 
     // State: App Selection Modal
