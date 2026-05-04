@@ -87,7 +87,9 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 ## 7. Build & Deployment (CI/CD)
 - **Environment:** Node.js 24+ for the deployment runner.
 - **Build Script:** Native Android build is handled via Gradle (`./gradlew assembleDebug`).
-- **PWA Mirroring:** The `index.html` in the root acts as a fallback landing page for the GitHub Pages deployment to prevent 404 errors during distribution.
+- **Optimization:** `minifyEnabled true` and `shrinkResources true` are active in the `release` build type to reduce APK size and obfuscate code.
+- **Rules:** custom ProGuard rules are defined in `/app/proguard-rules.pro` to protect Gson serialization and Compose stability.
+- **PWA Mirroring:** The `index.html` in the root acts as a fallback landing page for the GitHub Pages deployment.
 
 ## 8. Implementation Checklist
 - [x] Assistive cursor on z-index 1000+.
