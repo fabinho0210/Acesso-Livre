@@ -1,41 +1,36 @@
 package com.acessolivre.launcher
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import com.acessolivre.launcher.ui.components.NeoBrutalistButton
-import com.acessolivre.launcher.ui.components.CursorOverlay
-import com.acessolivre.launcher.ui.components.TrackpadArea
-import com.acessolivre.launcher.viewmodel.LauncherViewModel
-import com.acessolivre.launcher.utils.VoiceAssistant
 import androidx.compose.foundation.shape.RoundedCornerShape
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import com.acessolivre.launcher.ui.components.SystemControlsBar
-import com.acessolivre.launcher.ui.components.RectData
-import com.acessolivre.launcher.utils.HapticService
-import com.acessolivre.launcher.utils.VoiceAssistant
-import androidx.compose.foundation.border
-
-import android.Manifest
-import android.content.pm.PackageManager
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-
-import com.acessolivre.launcher.services.LauncherAccessibilityService
-import androidx.compose.ui.res.stringResource
 import com.acessolivre.launcher.R
+import com.acessolivre.launcher.services.LauncherAccessibilityService
+import com.acessolivre.launcher.ui.components.*
+import com.acessolivre.launcher.utils.HapticService
+import com.acessolivre.launcher.utils.VoiceAssistant
+import com.acessolivre.launcher.viewmodel.LauncherViewModel
 import java.util.*
 
 class MainActivity : ComponentActivity() {
