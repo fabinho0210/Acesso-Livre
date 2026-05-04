@@ -49,18 +49,24 @@ class VoiceAssistant(
     }
 
     fun startListening() {
+        val locale = Locale.getDefault()
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
         }
         speechRecognizer?.startListening(intent)
-        speak("Como posso ajudar?")
+        speak(context.getString(R.string.voice_help))
     }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.setLanguage(Locale("pt", "BR"))
+            val locale = Locale.getDefault()
+            val result = tts.setLanguage(locale)
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS", "Language not supported or missing data, falling back to US")
+                tts.language = Locale.US
+            }
             isReady = true
         }
     }

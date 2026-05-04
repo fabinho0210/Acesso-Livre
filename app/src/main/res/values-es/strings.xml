@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Acesso Livre</string>
+    <string name="accessibility_description">Asistente de accesibilidad para usuarios con discapacidad motriz.</string>
+    <string name="header_title">ACCESO LIBRE</string>
+    <string name="btn_add">AÑADIR</string>
+    <string name="btn_close">CERRAR</string>
+    <string name="btn_select_apps">SELECCIONAR APPS</string>
+    <string name="trackpad_label">ÁREA DE CONTROL</string>
+    <string name="trackpad_instruction">DESLICE PARA MOVER EL CURSOR</string>
+    <string name="listening">ESCUCHANDO...</string>
+    <string name="lock_unlock">Bloquear/Desbloquear Ajustes</string>
+    <string name="opening_app">Abriendo %s</string>
+    <string name="app_not_found">Aplicación %s no encontrada</string>
+    <string name="volume_up">Volumen aumentado</string>
+    <string name="volume_down">Volumen disminuido</string>
+    <string name="opening_notifications">Abriendo notificaciones</string>
+    <string name="battery_status">La batería está al %d por ciento</string>
+    <string name="current_time">Son las %s</string>
+    <string name="voice_back">Regresando</string>
+    <string name="voice_home">Yendo al inicio</string>
+    <string name="voice_recents">Mostrando aplicaciones recientes</string>
+    <string name="voice_help">¿Cómo puedo ayudar?</string>
+    <string name="voice_unknown">Comando no reconocido: %s</string>
+</resources>

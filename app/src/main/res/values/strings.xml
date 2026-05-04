@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Acesso Livre</string>
+    <string name="accessibility_description">Accessibility helper for motor impaired users.</string>
+    <string name="header_title">ACESSO LIVRE</string>
+    <string name="btn_add">ADD</string>
+    <string name="btn_close">CLOSE</string>
+    <string name="btn_select_apps">SELECT APPS</string>
+    <string name="trackpad_label">CONTROL AREA</string>
+    <string name="trackpad_instruction">SLIDE TO MOVE CURSOR</string>
+    <string name="listening">LISTENING...</string>
+    <string name="lock_unlock">Lock/Unlock Settings</string>
+    <string name="opening_app">Opening %s</string>
+    <string name="app_not_found">Application %s not found</string>
+    <string name="volume_up">Volume Increased</string>
+    <string name="volume_down">Volume Decreased</string>
+    <string name="opening_notifications">Opening notifications</string>
+    <string name="battery_status">Battery is at %d percent</string>
+    <string name="current_time">It is %s</string>
+    <string name="voice_back">Going back</string>
+    <string name="voice_home">Going home</string>
+    <string name="voice_recents">Showing recent apps</string>
+    <string name="voice_help">How can I help?</string>
+    <string name="voice_unknown">Command not recognized: %s</string>
+</resources>

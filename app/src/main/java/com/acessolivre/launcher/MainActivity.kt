@@ -34,6 +34,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 import com.acessolivre.launcher.services.LauncherAccessibilityService
+import androidx.compose.ui.res.stringResource
+import com.acessolivre.launcher.R
+import java.util.*
 
 class MainActivity : ComponentActivity() {
     private lateinit var viewModel: LauncherViewModel
@@ -57,6 +60,7 @@ class MainActivity : ComponentActivity() {
             val cardBg = if (isDark) Color(0xFF1A1A1A) else Color.White
             val contentColor = if (isDark) Color.White else Color.Black
             val borderColor = if (isDark) Color.White else Color.Black
+            val splashColor = if (isDark) Color(0xFFFACC15) else Color.Black.copy(alpha = 0.2f)
 
             val apps by viewModel.favoriteApps.collectAsState()
             val cursorPos by viewModel.cursorPos.collectAsState()
@@ -193,9 +197,10 @@ class MainActivity : ComponentActivity() {
                                 backgroundColor = cardBg,
                                 textColor = contentColor,
                                 borderColor = borderColor,
+                                splashColor = splashColor,
                                 haptic = haptic,
                                 onClick = { 
-                                    voice.speak("Abrindo " + app.label)
+                                    voice.speak(getString(R.string.opening_app, app.label))
                                     viewModel.launchApp(this@MainActivity, app.packageName) 
                                 },
                                 onPositioned = { rect ->
@@ -203,14 +208,15 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        
+
                         if (!isLocked) {
                             item {
                                 NeoBrutalistButton(
-                                    text = "ADICIONAR",
+                                    text = stringResource(R.string.btn_add),
                                     backgroundColor = Color(0xFF4ADE80),
                                     textColor = Color.Black,
                                     borderColor = borderColor,
+                                    splashColor = Color.Black.copy(alpha = 0.3f),
                                     icon = Icons.Default.Add,
                                     haptic = haptic,
                                     onClick = { 
@@ -238,7 +244,7 @@ class MainActivity : ComponentActivity() {
                                     viewModel.toggleFavorite(this@MainActivity, pkg)
                                 } else {
                                     apps.find { it.packageName == targetId }?.let {
-                                        voice.speak("Abrindo " + it.label)
+                                        voice.speak(getString(R.string.opening_app, it.label))
                                         viewModel.launchApp(this@MainActivity, it.packageName)
                                     }
                                 }
@@ -265,20 +271,21 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = androidx.compose.ui.`Alignment`.CenterVertically
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "SELECIONAR APPS",
+                                    stringResource(R.string.btn_select_apps),
                                     color = contentColor,
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Black
                                     )
                                 )
                                 NeoBrutalistButton(
-                                    text = "FECHAR",
+                                    text = stringResource(R.string.btn_close),
                                     backgroundColor = Color.Red,
                                     textColor = Color.White,
                                     borderColor = borderColor,
+                                    splashColor = Color.White.copy(alpha = 0.4f),
                                     haptic = haptic,
                                     modifier = Modifier.width(120.dp),
                                     onClick = { viewModel.toggleAppSelection() },
@@ -298,6 +305,7 @@ class MainActivity : ComponentActivity() {
                                         backgroundColor = if (isFav) Color(0xFF4ADE80) else cardBg,
                                         textColor = if (isFav) Color.Black else contentColor,
                                         borderColor = borderColor,
+                                        splashColor = if (isFav) Color.Black.copy(alpha = 0.3f) else splashColor,
                                         haptic = haptic,
                                         onClick = { viewModel.toggleFavorite(this@MainActivity, app.packageName) },
                                         onPositioned = { rect -> 
@@ -327,50 +335,58 @@ class MainActivity : ComponentActivity() {
 
     private fun processVoiceCommand(command: String) {
         val allApps = viewModel.allApps.value
+        val locale = Locale.getDefault().language
+        
+        // Comandos mapeados por idioma
+        val cmdOpen = when(locale) {
+            "pt" -> "abrir"
+            "es" -> "abrir"
+            else -> "open"
+        }
         
         when {
-            command.contains("abrir") -> {
-                val appName = command.replace("abrir", "").trim().lowercase()
+            command.contains(cmdOpen) -> {
+                val appName = command.replace(cmdOpen, "").trim().lowercase()
                 val targetApp = allApps.find { it.label.lowercase().contains(appName) }
                 if (targetApp != null) {
-                    voice.speak("Abrindo ${targetApp.label}")
+                    voice.speak(getString(R.string.opening_app, targetApp.label))
                     viewModel.launchApp(this, targetApp.packageName)
                 } else {
-                    voice.speak("Não encontrei o aplicativo $appName")
+                    voice.speak(getString(R.string.app_not_found, appName))
                 }
             }
-            command.contains("volume") && command.contains("mais") -> {
+            command.contains("volume") && (command.contains("mais") || command.contains("up") || command.contains("más")) -> {
                 viewModel.adjustVolume(true)
-                voice.speak("Volume aumentado")
+                voice.speak(getString(R.string.volume_up))
             }
-            command.contains("volume") && command.contains("menos") -> {
+            command.contains("volume") && (command.contains("menos") || command.contains("down") || command.contains("menos")) -> {
                 viewModel.adjustVolume(false)
-                voice.speak("Volume diminuído")
+                voice.speak(getString(R.string.volume_down))
             }
-            command.contains("notificações") || command.contains("painel") -> {
+            command.contains("notificações") || command.contains("notifications") || command.contains("notificaciones") -> {
                 viewModel.expandNotifications(this)
-                voice.speak("Abrindo notificações")
+                voice.speak(getString(R.string.opening_notifications))
             }
-            command.contains("horas") || command.contains("tempo") -> {
-                voice.speak("Agora são ${viewModel.currentTime.value}")
+            command.contains("horas") || command.contains("time") || command.contains("tiempo") -> {
+                voice.speak(getString(R.string.current_time, viewModel.currentTime.value))
             }
-            command.contains("bateria") -> {
-                voice.speak("A bateria está em ${viewModel.batteryLevel.value} por cento")
+            command.contains("bateria") || command.contains("battery") -> {
+                voice.speak(getString(R.string.battery_status, viewModel.batteryLevel.value))
             }
-            command.contains("voltar") -> {
+            command.contains("voltar") || command.contains("back") || command.contains("atrás") -> {
                 LauncherAccessibilityService.performGlobalBack()
-                voice.speak("Voltando")
+                voice.speak(getString(R.string.voice_back))
             }
-            command.contains("início") || command.contains("começar") -> {
+            command.contains("início") || command.contains("home") || command.contains("inicio") -> {
                 LauncherAccessibilityService.performGlobalHome()
-                voice.speak("Indo para o início")
+                voice.speak(getString(R.string.voice_home))
             }
-            command.contains("recentes") -> {
+            command.contains("recentes") || command.contains("recent") || command.contains("recientes") -> {
                 LauncherAccessibilityService.performGlobalRecents()
-                voice.speak("Mostrando aplicativos recentes")
+                voice.speak(getString(R.string.voice_recents))
             }
             else -> {
-                voice.speak("Comando não reconhecido: $command")
+                voice.speak(getString(R.string.voice_unknown, command))
             }
         }
     }
