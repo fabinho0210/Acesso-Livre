@@ -22,7 +22,7 @@
   }
 
   body {
-    @apply antialiased overflow-hidden select-none;
+    @apply antialiased overflow-hidden select-none transition-[filter] duration-300;
     height: 100dvh;
     width: 100vw;
     margin: 0;
@@ -32,6 +32,47 @@
     cursor: none !important;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+  }
+
+  /* Support for high contrast / colorblind mode */
+  .grayscale {
+    filter: grayscale(100%);
+  }
+  
+  .grayscale-contrast {
+    filter: grayscale(100%) contrast(1.2) brightness(1.1);
+  }
+
+  /* Accessibility: Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Text Scaling Support */
+  [style*="font-size"] {
+    line-height: 1.2 !important;
+  }
+
+  button, [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+    will-change: transform;
+  }
+
+  /* GPU hint for modals and cursor */
+  .fixed, .absolute {
+    will-change: transform, opacity;
+  }
+
+  #main-scroll-area {
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
   }
 
   #root {

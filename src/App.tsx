@@ -98,7 +98,8 @@ const DigitalClock = ({ language, themeMode, THEMES, customTheme }: { language: 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => console.log("User denied geolocation for weather")
+        (err) => console.log("Weather location error:", err.message),
+        { timeout: 10000, enableHighAccuracy: false }
       );
     }
   }, []);
@@ -254,7 +255,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [highContrastMode, setHighContrastMode] = useState(() => window.matchMedia('(prefers-contrast: more)').matches);
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const [colorblindMode, setColorblindMode] = useState(() => false);
+  const [colorblindMode, setColorblindMode] = useState(() => localStorage.getItem('launcher_colorblindMode') === 'true');
   const [lockEdit, setLockEdit] = useState(() => localStorage.getItem('launcher_lockEdit') === 'true');
   const [vibrateOnTouch, setVibrateOnTouch] = useState(() => localStorage.getItem('launcher_vibrateOnTouch') !== 'false');
   const [readingLine, setReadingLine] = useState(false);
@@ -263,6 +264,15 @@ export default function App() {
   const [trackpadEnabled, setTrackpadEnabled] = useState(() => localStorage.getItem('launcher_trackpadEnabled') !== 'false');
   const [enhancedFeedback, setEnhancedFeedback] = useState(() => localStorage.getItem('launcher_enhancedFeedback') !== 'false');
   const [showCursor, setShowCursor] = useState(() => localStorage.getItem('launcher_showCursor') !== 'false');
+  
+  useEffect(() => {
+    localStorage.setItem('launcher_colorblindMode', String(colorblindMode));
+    if (colorblindMode) {
+      document.documentElement.style.filter = 'grayscale(100%)';
+    } else {
+      document.documentElement.style.filter = 'none';
+    }
+  }, [colorblindMode]);
   
   // Listen to system changes
   useEffect(() => {
@@ -399,7 +409,10 @@ export default function App() {
       itIs: "Agora são ",
       batteryLevel: "Nível de bateria em ",
       unknownLocation: "Local desconhecido",
-      youAreAt: "Você está na"
+      youAreAt: "Você está na",
+      grayscale: "Modo Daltonismo (Cinza)",
+      statusOn: "Ativado",
+      statusOff: "Desativado"
     },
     'en-US': {
       appName: "FREE ACCESS",
@@ -500,7 +513,10 @@ export default function App() {
       itIs: "It is ",
       batteryLevel: "Battery level at ",
       unknownLocation: "Unknown location",
-      youAreAt: "You are at"
+      youAreAt: "You are at",
+      grayscale: "Colorblind Mode (Grayscale)",
+      statusOn: "Enabled",
+      statusOff: "Disabled"
     },
     'es-ES': {
       appName: "ACCESO LIBRE",
@@ -601,7 +617,10 @@ export default function App() {
       itIs: "Son las ",
       batteryLevel: "Nivel de batería al ",
       unknownLocation: "Ubicación desconocida",
-      youAreAt: "Estás en"
+      youAreAt: "Estás en",
+      grayscale: "Modo Daltonismo (Gris)",
+      statusOn: "Activado",
+      statusOff: "Desactivado"
     }
   };
 
@@ -773,6 +792,7 @@ export default function App() {
 
   const handleWhereAmI = async () => {
     if (navigator.geolocation) {
+      setLocationText(t.locating);
       navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
@@ -782,7 +802,7 @@ export default function App() {
         } catch (err) {
           setLocationText(t.locationUnknown);
         }
-      }, () => setLocationText(t.locationDenied));
+      }, () => setLocationText(t.locationDenied), { timeout: 8000 });
     }
   };
 
@@ -1092,6 +1112,8 @@ export default function App() {
 
   return (
     <div 
+      id="app-root"
+      role="main"
       className={cn(
         "fixed inset-0 flex flex-col overflow-hidden select-none font-sans h-[100dvh] w-[100vw] touch-none",
         themeMode !== 'custom' && (THEMES[themeMode]?.bg || THEMES.default.bg),
@@ -1145,7 +1167,7 @@ export default function App() {
             tabIndex={trackpadEnabled ? -1 : 0}
             onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
             onClick={() => { setShowAccessModal(true); triggerHaptic([50]); }}
-            aria-label="Botão para abrir o menu de acessibilidade"
+            aria-label={`${t.accessibility}. Status: ${showAccessModal ? t.statusOn : t.statusOff}`}
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 active:translate-y-1 active:shadow-none transition-all",
               themeMode === 'custom' ? "bg-white border-black" : (themeMode === 'default' ? "bg-yellow-400 border-black" : "bg-transparent")
@@ -1171,7 +1193,7 @@ export default function App() {
             tabIndex={trackpadEnabled ? -1 : 0}
             onFocus={(e) => trackpadEnabled && e.currentTarget.blur()}
             onClick={() => { setShowSettingsModal(true); triggerHaptic([50]); }}
-            aria-label="Botão para abrir as configurações do sistema"
+            aria-label={`${t.settings}. Status: ${showSettingsModal ? t.statusOn : t.statusOff}`}
             className={cn(
               "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-[4px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center active:translate-x-1 transition-all",
               themeMode === 'custom' ? "bg-transparent" : (themeMode === 'default' ? "bg-white" : (THEMES[themeMode]?.bg || THEMES.default.bg))
@@ -1347,7 +1369,15 @@ export default function App() {
       {/* Accessibility Modal */}
       <AnimatePresence>
         {showAccessModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center">
+          <motion.div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="access-title"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center"
+          >
             <motion.div 
               initial={{ y: "100%" }} 
               animate={{ y: 0 }} 
@@ -1364,7 +1394,7 @@ export default function App() {
                   <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-[20px] border-[4px] border-black/20">
                     <Accessibility size={32} strokeWidth={3} />
                   </div>
-                  <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
+                  <h2 id="access-title" className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.accessibility}</h2>
                 </div>
                 <button 
               id="access-close-btn"
@@ -1415,14 +1445,16 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => setFontSize(s => Math.min(200, s + 10))} aria-label="Botão para aumentar o tamanho do texto" className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-blue-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all")}><ZoomIn size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.increaseText}</span></button>
                     <button onClick={() => { setFontSize(s => Math.max(50, s - 10)); triggerHaptic([50]); }} aria-label="Botão para diminuir o tamanho do texto" className="min-h-[112px] p-4 rounded-2xl border-[4px] border-black bg-cyan-400 flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"><ZoomOut size={32} className="text-black" /><span className="font-black uppercase text-[10px] sm:text-xs text-black text-center leading-tight">{t.decreaseText}</span></button>
-                    <button onClick={() => setReadingLine(!readingLine)} aria-label="Botão para ligar ou desligar a linha de leitura" className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
+                    <button onClick={() => setReadingLine(!readingLine)} aria-pressed={readingLine} aria-label={`${t.readingLine}. Status: ${readingLine ? t.statusOn : t.statusOff}`} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", readingLine ? "bg-yellow-400 text-black shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Type size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.readingLine}</span></button>
                     
+                    <button onClick={() => setColorblindMode(!colorblindMode)} aria-pressed={colorblindMode} aria-label={`${t.grayscale}. Status: ${colorblindMode ? t.statusOn : t.statusOff}`} className={cn("min-h-[112px] p-4 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all", colorblindMode ? "bg-zinc-800 text-white shadow-none translate-y-1" : "bg-zinc-100 text-black")}><Contrast size={32} /><span className="font-black uppercase text-[10px] sm:text-xs text-center leading-tight">{t.grayscale}</span></button>
+
                     <button onClick={() => {
                       const newState = !enhancedFeedback;
                       setEnhancedFeedback(newState);
                       localStorage.setItem('launcher_enhancedFeedback', String(newState));
                       triggerHaptic([50]);
-                    }} aria-label="Botão para alternar feedback visual" className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", enhancedFeedback ? "bg-purple-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
+                    }} aria-pressed={enhancedFeedback} aria-label={`${t.visualFeedback}. Status: ${enhancedFeedback ? t.statusOn : t.statusOff}`} className={cn("h-28 rounded-2xl border-[4px] border-black flex flex-col items-center justify-center gap-1 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]", enhancedFeedback ? "bg-purple-400 text-black shadow-none" : "bg-zinc-100 text-black")}>
                       <Palette size={32} />
                       <span className="font-black uppercase text-[10px]">{t.visualFeedback}</span>
                     </button>
@@ -1500,7 +1532,15 @@ export default function App() {
       {/* Add App Modal - Padronizado para Acessibilidade Extrema */}
       <AnimatePresence>
         {showAddAppModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center">
+          <motion.div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-app-title"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-black/95 z-[3000] flex items-center justify-center"
+          >
             <motion.div 
               initial={{ y: "100%" }} 
               animate={{ y: 0 }}
@@ -1514,7 +1554,7 @@ export default function App() {
                     <Plus size={48} strokeWidth={5} />
                   </div>
                   <div>
-                    <h2 className="font-black text-4xl sm:text-5xl uppercase tracking-tighter leading-none">{t.addAppTitle}</h2>
+                    <h2 id="add-app-title" className="font-black text-4xl sm:text-5xl uppercase tracking-tighter leading-none">{t.addAppTitle}</h2>
                     <p className="text-xl font-bold opacity-80 uppercase mt-2 tracking-tight">
                       {t.chooseApp}
                     </p>
@@ -1584,7 +1624,15 @@ export default function App() {
       {/* Medical Info Sub-Modal - Padronizado */}
       <AnimatePresence>
         {showMedicalInfo && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[4000] flex items-center justify-center p-4">
+          <motion.div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="medical-title"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-black/95 z-[4000] flex items-center justify-center p-4"
+          >
             <motion.div 
               initial={{ scale: 0.9, y: 50 }} 
               animate={{ scale: 1, y: 0 }} 
@@ -1595,7 +1643,7 @@ export default function App() {
                   <div className="w-12 h-12 flex items-center justify-center bg-white/20 rounded-2xl border-[4px] border-white/40">
                     <Heart size={28} strokeWidth={4} />
                   </div>
-                  <h2 className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
+                  <h2 id="medical-title" className="font-black text-xl sm:text-2xl uppercase italic tracking-tighter">{t.medicalInfo}</h2>
                 </div>
                 <button 
                   id="medical-info-close-top-btn"
@@ -1631,7 +1679,15 @@ export default function App() {
       {/* Settings Modal */}
       <AnimatePresence>
         {showSettingsModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center">
+          <motion.div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-black/95 backdrop-blur-md z-[2000] flex items-center justify-center"
+          >
             <motion.div 
               initial={{ y: "100%" }} 
               animate={{ y: 0 }} 
@@ -1648,7 +1704,7 @@ export default function App() {
                   <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-black/10 rounded-[20px] border-[4px] border-black/20">
                     <Settings size={32} strokeWidth={3} />
                   </div>
-                  <h2 className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.settings}</h2>
+                  <h2 id="settings-title" className="font-black text-2xl sm:text-3xl uppercase italic tracking-tighter leading-none">{t.settings}</h2>
                 </div>
                 <button 
                   id="settings-close-btn"
