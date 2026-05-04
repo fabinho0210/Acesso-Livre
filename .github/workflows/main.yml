@@ -1,0 +1,33 @@
+name: Acesso lIVRE
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do seu código Android
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 (Padrão atual do Android)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Dar permissão ao compilador
+        run: chmod +x gradlew
+
+      - name: Gerar o arquivo APK
+        # Esse comando varre suas pastas e cria o binário do Android
+        run: ./gradlew assembleDebug
+
+      - name: Entregar o arquivo .apk para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Instalador-Acesso-Livre
+          # Este é o caminho padrão onde o Android gera o APK após compilar
+          path: app/build/outputs/apk/debug/app-debug.apk
