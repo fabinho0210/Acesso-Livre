@@ -14,8 +14,30 @@ class AppPreferences(context: Context) {
     }
 
     fun getFavorites(): List<String> {
-        val json = prefs.getString("favorite_apps", null) ?: return listOf("com.android.settings")
+        val json = prefs.getString("favorite_apps", null) ?: return listOf("com.android.settings", "com.whatsapp", "com.google.android.apps.maps")
         val type = object : TypeToken<List<String>>() {}.type
         return gson.fromJson(json, type)
+    }
+
+    fun saveTheme(mode: String) {
+        prefs.edit().putString("theme_mode", mode).apply()
+    }
+
+    fun getTheme(): String {
+        return prefs.getString("theme_mode", "CLASSIC") ?: "CLASSIC"
+    }
+
+    fun saveSosContact(number: String) {
+        prefs.edit().putString("sos_contact", number).apply()
+    }
+
+    fun getSosContact(): String {
+        return prefs.getString("sos_contact", "") ?: ""
+    }
+
+    fun isFirstRun(): Boolean {
+        val first = prefs.getBoolean("first_run", true)
+        if (first) prefs.edit().putBoolean("first_run", false).apply()
+        return first
     }
 }

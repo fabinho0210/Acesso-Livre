@@ -32,4 +32,22 @@ class HapticService(context: Context) {
             vibrator.vibrate(100)
         }
     }
+
+    fun error() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 100, 50, 100, 50, 100), -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(300)
+        }
+    }
+
+    fun hover() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(10, 150))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(10)
+        }
+    }
 }

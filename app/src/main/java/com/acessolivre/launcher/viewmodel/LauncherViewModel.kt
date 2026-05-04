@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.acessolivre.launcher.data.AppPreferences
@@ -27,6 +28,50 @@ data class AppInfo(
 
 class LauncherViewModel(context: Context) : ViewModel() {
     private val prefs = AppPreferences(context)
+
+    // State: Theme
+    private val _themeMode = MutableStateFlow(prefs.getTheme())
+    val themeMode: StateFlow<String> = _themeMode
+
+    val themeBg: Color
+        get() = when (_themeMode.value) {
+            "CLOUD" -> Color(0xFFE2E8F0) // Slate 200
+            "NIGHT" -> Color(0xFF09090B) // Zinc 950
+            "OCEAN" -> Color(0xFF1E3A8A) // Blue 900
+            else -> Color(0xFFFACC15)    // Yellow 400 (Classic)
+        }
+
+    val themeCard: Color
+        get() = when (_themeMode.value) {
+            "CLOUD" -> Color(0xFFFFFFFF)
+            "NIGHT" -> Color(0xFF18181B) // Zinc 900
+            "OCEAN" -> Color(0xFF3B82F6) // Blue 500
+            else -> Color(0xFFFFFFFF)    // White
+        }
+
+    val themeContent: Color
+        get() = when (_themeMode.value) {
+            "CLOUD" -> Color(0xFF000000)
+            "NIGHT" -> Color(0xFFFFFFFF)
+            "OCEAN" -> Color(0xFFFACC15) // Yellow foreground
+            else -> Color(0xFF000000)    // Black (Classic)
+        }
+
+    fun setTheme(mode: String) {
+        _themeMode.value = mode
+        prefs.saveTheme(mode)
+    }
+
+    // State: SOS
+    private val _sosContact = MutableStateFlow(prefs.getSosContact())
+    val sosContact: StateFlow<String> = _sosContact
+
+    fun updateSosContact(number: String) {
+        _sosContact.value = number
+        prefs.saveSosContact(number)
+    }
+
+    fun isFirstRun(): Boolean = prefs.isFirstRun()
     
     // State: Apps
     private val _allApps = MutableStateFlow<List<AppInfo>>(emptyList())

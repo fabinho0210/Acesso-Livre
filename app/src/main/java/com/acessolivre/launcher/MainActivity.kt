@@ -2,7 +2,10 @@ package com.acessolivre.launcher
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.os.Bundle
+import android.telephony.SmsManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -19,6 +22,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -51,13 +56,17 @@ class MainActivity : ComponentActivity() {
         checkPermissions()
         viewModel.loadAllApps(this)
 
+        if (viewModel.isFirstRun()) {
+            voice.speak("Bem-vindo ao Acesso Livre. Para navegar, deslize o dedo na área amarela inferior. Quando o círculo vermelho estiver sobre um botão por algum tempo, ele será clicado automaticamente.")
+        }
+
         setContent {
-            val isDark = isSystemInDarkTheme()
-            val themeBg = if (isDark) Color(0xFF000000) else Color(0xFFFACC15)
-            val cardBg = if (isDark) Color(0xFF1A1A1A) else Color.White
-            val contentColor = if (isDark) Color.White else Color.Black
-            val borderColor = if (isDark) Color.White else Color.Black
-            val splashColor = if (isDark) Color(0xFFFACC15) else Color.Black.copy(alpha = 0.2f)
+            val themeMode by viewModel.themeMode.collectAsState()
+            val themeBg = viewModel.themeBg
+            val cardBg = viewModel.themeCard
+            val contentColor = viewModel.themeContent
+            val borderColor = viewModel.themeContent // O contorno segue a cor do conteúdo
+            val splashColor = contentColor.copy(alpha = 0.2f)
 
             val apps by viewModel.favoriteApps.collectAsState()
             val cursorPos by viewModel.cursorPos.collectAsState()
@@ -191,6 +200,23 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.weight(1f).padding(16.dp),
                         contentPadding = PaddingValues(bottom = 20.dp)
                     ) {
+                        if (!isLocked) {
+                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 16.dp)) {
+                                    Text("Escolha o Tema:", color = contentColor, fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        ThemeButton("Amarelo", Color(0xFFFACC15), Color.Black) { viewModel.setTheme("CLASSIC") }
+                                        ThemeButton("Branco", Color(0xFFFFFFFF), Color.Black) { viewModel.setTheme("CLOUD") }
+                                        ThemeButton("Preto", Color(0xFF18181B), Color.White) { viewModel.setTheme("NIGHT") }
+                                        ThemeButton("Azul", Color(0xFF1E40AF), Color.White) { viewModel.setTheme("OCEAN") }
+                                    }
+                                }
+                            }
+                        }
+
                         items(apps) { app ->
                             NeoBrutalistButton(
                                 text = app.label,
@@ -236,7 +262,7 @@ class MainActivity : ComponentActivity() {
                         isListening = isListening,
                         onMove = { dx, dy -> 
                             viewModel.updateCursor(dx, dy, screenWidth, screenHeight) { targetId ->
-                                haptic.success()
+                                haptic.hover()
                                 if (targetId == "btn_add_apps") {
                                     viewModel.toggleAppSelection()
                                 } else if (targetId == "btn_close_selection") {
@@ -244,6 +270,8 @@ class MainActivity : ComponentActivity() {
                                 } else if (targetId.startsWith("select_")) {
                                     val pkg = targetId.removePrefix("select_")
                                     viewModel.toggleFavorite(this@MainActivity, pkg)
+                                } else if (targetId == "btn_sos") {
+                                    sendSos()
                                 } else {
                                     apps.find { it.packageName == targetId }?.let {
                                         voice.speak(getString(R.string.opening_app, it.label))
@@ -253,6 +281,30 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     )
+                }
+
+                // Botão SOS Flutuante
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp, bottom = 300.dp)
+                ) {
+                    IconButton(
+                        onClick = { sendSos() },
+                        modifier = Modifier
+                            .size(100.dp)
+                            .border(4.dp, Color.Black, RoundedCornerShape(16.dp))
+                            .background(Color.Red, RoundedCornerShape(16.dp))
+                            .onGloballyPositioned { layoutCoordinates ->
+                                val rect = layoutCoordinates.boundsInRoot()
+                                viewModel.registerComponent("btn_sos", RectData(rect.left, rect.top, rect.width, rect.height))
+                            }
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Warning, contentDescription = "SOS", tint = Color.White, modifier = Modifier.size(48.dp))
+                            Text("SOS", color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
+                        }
+                    }
                 }
 
                 if (showSelection) {
@@ -330,8 +382,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkPermissions() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
+        val permissions = arrayOf(
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.SEND_SMS
+        )
+        val toRequest = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (toRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, toRequest.toTypedArray(), 100)
         }
     }
 
@@ -418,6 +480,18 @@ class MainActivity : ComponentActivity() {
             command.contains("horas") || command.contains("time") || command.contains("tiempo") -> {
                 voice.speak(getString(R.string.current_time, viewModel.currentTime.value))
             }
+            command.contains("socorro") || command.contains("emergência") || command.contains("sos") -> {
+                sendSos()
+            }
+            command.contains("configurar") && (command.contains("número") || command.contains("contato")) && command.contains("sos") -> {
+                val number = command.replace(Regex("[^0-9]"), "")
+                if (number.length >= 8) {
+                    viewModel.updateSosContact(number)
+                    voice.speak("Número de SOS configurado para $number")
+                } else {
+                    voice.speak("Número inválido. DigaConfigurar SOS seguido do número com DDD.")
+                }
+            }
             command.contains("bateria") || command.contains("battery") || command.contains("batería") -> {
                 voice.speak(getString(R.string.battery_status, viewModel.batteryLevel.value))
             }
@@ -436,6 +510,28 @@ class MainActivity : ComponentActivity() {
             command.contains("ajuda") || command.contains("help") || command.contains("ayuda") -> {
                 voice.speak(getString(R.string.voice_help))
             }
+            // Comandos de Tema
+            command.contains("tema") || command.contains("color") -> {
+                when {
+                    command.contains("amarelo") || command.contains("clássico") || command.contains("classic") || command.contains("amarillo") -> {
+                        viewModel.setTheme("CLASSIC")
+                        voice.speak("Cores alteradas para Amarelo Clássico")
+                    }
+                    command.contains("branco") || command.contains("claro") || command.contains("white") || command.contains("blanco") -> {
+                        viewModel.setTheme("CLOUD")
+                        voice.speak("Cores alteradas para Branco Nuvem")
+                    }
+                    command.contains("preto") || command.contains("escuro") || command.contains("noite") || command.contains("black") || command.contains("noche") -> {
+                        viewModel.setTheme("NIGHT")
+                        voice.speak("Cores alteradas para Preto Noite")
+                    }
+                    command.contains("azul") || command.contains("mar") || command.contains("blue") -> {
+                        viewModel.setTheme("OCEAN")
+                        voice.speak("Cores alteradas para Azul Mar")
+                    }
+                    else -> voice.speak("Tema não reconhecido. Tente: Amarelo, Branco, Preto ou Azul.")
+                }
+            }
             else -> {
                 voice.speak(getString(R.string.voice_unknown, command))
             }
@@ -445,5 +541,55 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         voice.shutdown()
         super.onDestroy()
+    }
+
+    private fun sendSos() {
+        val contact = viewModel.sosContact.value
+        if (contact.isBlank()) {
+            voice.speak("Nenhum contato de SOS configurado. Por favor, adicione um número nas configurações.")
+            haptic.error()
+            return
+        }
+
+        voice.speak("Iniciando modo de emergência. Enviando sua localização para o contato de confiança.")
+        haptic.success()
+
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        try {
+            val location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            val msg = if (location != null) {
+                "SOCORRO! Preciso de ajuda. Minha localização: https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}"
+            } else {
+                "SOCORRO! Preciso de ajuda. (Localização não disponível)"
+            }
+            
+            val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                this.getSystemService(SmsManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+            smsManager.sendTextMessage(contact, null, msg, null, null)
+            voice.speak("Mensagem de emergência enviada.")
+        } catch (e: SecurityException) {
+            voice.speak("Erro de permissão ao acessar localização.")
+            haptic.error()
+        } catch (e: Exception) {
+            voice.speak("Ocorreu um erro ao enviar o SOS.")
+            haptic.error()
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+fun ThemeButton(label: String, color: Color, textColor: Color, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(containerColor = color),
+        border = androidx.compose.foundation.BorderStroke(3.dp, Color.Black),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.padding(2.dp)
+    ) {
+        Text(label, color = textColor, fontWeight = androidx.compose.ui.text.font.FontWeight.Black, fontSize = 12.sp)
     }
 }
