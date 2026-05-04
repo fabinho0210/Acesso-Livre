@@ -1,118 +1,87 @@
 # Acesso Livre - Accessibility Launcher System Instructions
 
-This document outlines the core principles, design system, and functional logic for the "Acesso Livre" Accessibility Launcher. Use these instructions to maintain consistency across different versions or platforms.
+This document outlines the core principles, design system, and functional logic for the "Acesso Livre" Accessibility Launcher. It serves as the definitive guide for maintaining consistency, performance, and accessibility standards across the Native Android implementation.
 
 ## 1. Core Mission
-The launcher is designed for users with severe motor impairments (Disarthria, Cerebral Palsy, Reduced Mobility) and visual/hearing needs. It bridges the gap between the user and the smartphone through a virtual mouse (trackpad), voice synthesis, and dwell-clicking.
+The launcher is designed for users with severe motor impairments (Disarthria, Cerebral Palsy, Reduced Mobility) and visual/hearing needs. It empowers users to control their smartphones through an assistive trackpad, voice commands, and dwell-clicking, bridging the gap between physical limitations and digital interaction.
 
-## 2. Accessibility Guidelines (WCAG + Custom)
-- **High Contrast Mode:** Expanded to Multiple Presets (Classic, Inverted, Night, Solar) via `themeMode`. All elements use 4px black or theme-colored borders.
-- **Support Features:**
-  - **Colorblind Mode:** Grayscale and enhanced contrast toggle.
-  - **Reduce Motion:** Increases spring stiffness/damping for instant UI response.
-- **Multilingual Support:** Full interface and voice synthesis support for Portuguese (pt-BR), English (en-US), and Spanish (es-ES).
-- **Custom Personalization:** User can override background, element, and accent colors via `customTheme`.
-- **Font Scale:** Support for dynamic font sizing (default 22px, ranges up to 48px).
-- **Touch Targets:** Minimum 44x44px. Buttons are large (square grid layout, aspect-square).
-- **Dwell Clicking:** Automatic activation when a cursor hovers over an element for 1.5s. Resets on movement to new target.
-- **Visual Feedback:** 
-  - Hover states: Scale up (1.05x), enhanced shadows, and high-frequency haptic (5ms).
-  - Active states: Translation (1-4px down/right) to simulate physical button press ( Neo-Brutalism).
-- **Reading Line:** A horizontal guide that flows beneath the cursor to assist in tracking text line-by-line.
+## 2. Technical Architecture (Native Android)
+- **Framework:** Jetpack Compose for a modern, reactive, and declarative UI.
+- **State Management:** `LauncherViewModel` utilizing `MutableStateFlow` and `StateFlow` for real-time reactivity.
+- **Background Tasks:** Kotlin Coroutines (`viewModelScope`) for non-blocking operations like listing installed apps, ensuring high performance even on basic/low-end devices.
+- **Persistence:** `AppPreferences` wrapping `SharedPreferences` for storing favorite apps and accessibility settings.
+- **Inter-Process Communication:** `LauncherAccessibilityService` for global OS commands (Back, Recent Apps, Notifications).
 
-## 3. Design System (Neo-Brutalism)
-- **Style:** Thick black borders (4px), solid black shadows (`shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]`), and vibrant solid colors.
-- **Theme Colors:** 
-  - Primary: `#facc15` (Yellow)
-  - Secondary: Green (WhatsApp/Success), Blue (System), Red (Emergency/Stop).
-  - Neutrals: Zinc-100/900 for utility buttons.
-- **Architecture:**
-  - Header (130px): Large Digital Clock and Date (Center), Accessibility trigger (Left), Settings (Right). Uses flexbox `justify-between` for responsive alignment.
-  - Main Grid: Scrollable area for dynamic app cards. Layout uses `flex-grow: 1` to fill remaining space.
-  - Nav Bar (Bottom Area): Grid layout containing Microphone (Left), Clean Trackpad Area (Center), and Flashlight (Right).
-  - Trackpad Area (32dvh): Proportional control area for the virtual cursor. Displays a minimalist indicator when trackpad is enabled.
+## 3. Design System: Neo-Brutalism
+- **Visual Style:** 
+  - Thick black borders (4px) on all interactive elements.
+  - Hard black shadows (`8px 8px 0px 0px rgba(0,0,0,1)`).
+  - High-contrast, vibrant solid colors.
+- **Theme Colors:**
+  - **Primary:** `#facc15` (Yellow) - used for the main background and key highlights.
+  - **Secondary:** Green (Success/WhatsApp), Blue (System Info), Red (Emergency/Low Battery).
+  - **Neutral:** Zinc-100/900 for utility buttons and secondary backgrounds.
+- **Visual & Haptic Feedback:**
+  - **Hover:** Scale up (1.05x) and enhanced drop shadows.
+  - **Active:** Elements "translate" 4px down/right to simulate a physical press.
+  - **Haptics:** High-frequency vibration (5ms) on touch and "success" vibration on click/action completion.
 
-## 4. Functional Logic (Critical)
+## 4. Accessibility Features (Critical)
 
-### Assistive Cursor & Trackpad
-- **Resolution Independence:** Cursor position is stored as percentages (0-100% for X/Y).
-- **Mapping:** `document.elementFromPoint(xPx, yPx)` translates percentages to screen coordinates, adjusted for the scrollable main area.
-- **Toggle:** Trackpad can be disabled in Settings to allow standard touch interaction.
-- **Visual Info:** The trackpad area is kept clean to focus on movement, with the main time/date display moved to the Header for better visibility.
+### Assistive Cursor & Trackpad Area
+- **Logic:** The trackpad maps local touch coordinates to screen-wide percentages (0-100%).
+- **Targeting:** `LauncherViewModel` calculates the "active" element by comparing cursor percentages against registered element bounds (`RectData`).
+- **Indicator:** A high-contrast red cursor represents the assistive pointer.
+- **Listening State:** The trackpad area provides visual feedback (pulsating borders) when voice commands are active.
 
-### Dynamic Card Management
-- **Persistence:** Selected apps are stored in `localStorage` under `launcher_visibleApps`.
-- **Initial Setup:** Defaults to Phone, WhatsApp, Camera, Browser, Emergency, and Family on first run.
-- **PRESET_APPS:** A registry maps ID to labels, colors, and actions (Intents or Links).
-- **Security Logic:** Cards can only be added or removed when "Modo Configuração" (`lockEdit = false`) is active. This prevents accidental deletions by the user.
-- **Add App:** A modal allows selection from common apps (YouTube, Facebook, Instagram, etc.).
-- **Delete Action:** Rendered as a separate button (`id="del-{id}"`) attached to the card, visible only in configuration mode.
+### Dwell Clicking
+- **Activation:** 1.5s (configured in ViewModel via `Handler`).
+- **Resets:** Resets instantly if the cursor moves to a different element ID.
+- **Visuals:** A progress indicator (handled in code-behind) confirms the dwell timer.
 
-### Dwell Click Implementation
-- **Timing:** 1.5 seconds (20 steps of 75ms).
-- **Visuals:** SVG circular progress bar (32px) centered on the trackpad.
-- **Logic:** Resets if the cursor moves to a different element ID.
+### Voice Assistant (Integrated SDK)
+- **Engine:** Custom `VoiceAssistant.kt` wrapper over `android.speech.tts.TextToSpeech` and `SpeechRecognizer`.
+- **Feedback:** Real-time state updates (`isListening` StateFlow) to toggle UI indicators.
+- **Commands (Multi-language Support):**
+  - **Navigation:** "Subir/Descer", "Up/Down".
+  - **System:** "Lanterna/Flashlight", "Horas/Time", "Bateria/Battery".
+  - **Apps:** "Abrir [Nome do App]".
+  - **Accessibility:** "Ajuda/Socorro" for emergency/tutorial.
 
-### Voice Engine & Commands
-- **Synthesis:** Custom `speak()` function using `window.speechSynthesis` with multi-language support.
-- **Recognition:** Integrated `SpeechRecognition` when the assistant is active.
-- **Commands:** 
-  - *Navigation:* "Subir/Up/Arriba", "Descer/Down/Bajar" (control scroll).
-  - *UI Adjustments:* "Aumentar/Zoom in/Más", "Diminuir/Zoom out/Menos" (control font size).
-  - *App Control:* "Abrir [Nome do App]" launches the corresponding intent.
-  - *Safety:* "Ajuda/Socorro/Help" triggers emergency actions.
-  - *System (Offline):* "Lanterna/Flashlight", "Horas/Time", "Bateria/Battery".
-- **Toggle:** Voice feedback can be completely muted via the Accessibility menu (Vision category).
-- **Offline Support:** Basic commands work without internet if the OS (Android/iOS) has downloaded the local language pack for speech recognition.
-- **Flashlight:** A dedicated button in the bottom bar toggles the device flashlight (simulated via a visual overlay).
-- **Assistance Feedback:** When voice commands are active, a pulsating animation (scale and glow) is applied to the microphone icon, and a "Listening" indicator with frequency-bars is displayed on the trackpad area.
+### Accessibility Service Integration
+- **Service:** `LauncherAccessibilityService` allows the launcher to perform global UI actions.
+- **Commands:** `GLOBAL_ACTION_BACK`, `GLOBAL_ACTION_RECENTS`, `GLOBAL_ACTION_NOTIFICATIONS`.
 
-### Android Intents & Compatibility (API 30+)
-- **General Launcher:** `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`.
-- **Camera:** `intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end`.
-- **Browser:** `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_BROWSER;end`.
-- **WhatsApp:** `intent://send#Intent;package=com.whatsapp;scheme=whatsapp;end`.
-- **Specific Apps:** `intent://#Intent;package={packageName};scheme=https;end`.
-- **Queries Tag:** Mandatory in `AndroidManifest.xml` with `ACTION_MAIN` and `CATEGORY_LAUNCHER` for API 30+.
-- **QUERY_ALL_PACKAGES:** Required for full app listing in Launcher category.
+## 5. Native Logic & Performance
 
-## 5. Persistence & Delivery (Critical)
+### Application Management
+- **Permissions:** 
+  - `QUERY_ALL_PACKAGES`: Essential for listing installed apps on API 30+.
+  - `CAMERA` & `FLASHLIGHT`: For the dedicated flashlight feature.
+  - `RECORD_AUDIO`: For voice commands.
+- **App Loading:** Done in `Dispatchers.IO` to prevent UI jank. Only apps with `CATEGORY_LAUNCHER` are filtered for the selection modal.
+- **Intents:** Robust error handling (`ActivityNotFoundException`) ensures the launcher never crashes when launching 3rd party apps.
 
-### Persistence Layer
-- Simulated SharedPreferences using `localStorage`.
-- `saveFavorites(apps)` / `getFavorites()` abstraction.
-- Automatic recovery of defaults if `localStorage` is corrupted.
+### Battery & Connectivity
+- **Monitoring:** `BroadcastReceiver` in `LauncherViewModel` for real-time battery level and state tracking.
 
-### Cache Prevention (GitHub Pages/PWA)
-- Meta tags: `no-cache`, `no-store`, `must-revalidate`.
-- Script versioning: `src/main.js?v={timestamp}`.
-- Service Worker: Active script to unregister and clear previous caches on load.
+## 6. Persistence Map (Preferences)
+- `favorites`: Set of package names for the main grid.
+- `lock_edit`: Boolean indicating if "Modo Configuração" is disabled.
+- `dwell_enabled`: Boolean for the dwell-click helper.
+- `font_size`: Float for dynamic text scaling (Default: 22f).
 
-## 6. Persistence Map (LocalStorage)
-- `launcher_visibleApps`: JSON array of app IDs.
-- `launcher_lockEdit`: Boolean (Safety Lock / Modo Configuração).
-- `launcher_dwellEnabled`: Boolean.
-- `launcher_highContrast`: Boolean.
-- `launcher_darkMode`: Boolean.
-- `launcher_reduceMotion`: Boolean.
-- `launcher_colorblindMode`: Boolean.
-- `launcher_vibrateOnTouch`: Boolean.
-- `launcher_trackpadEnabled`: Boolean.
-- `launcher_voiceEnabled`: Boolean.
-- `launcher_enhancedFeedback`: Boolean.
-- `launcher_fontSize`: Integer.
-- `launcher_confirmCall`: Boolean.
-- `launcher_language`: String ('pt-BR', 'en-US', 'es-ES').
-- `launcher_themeMode`: String (preset names or 'custom').
-- `launcher_customTheme`: JSON object for user colors.
+## 7. Build & Deployment (CI/CD)
+- **Environment:** Node.js 22+ for the deployment runner.
+- **Build Script:** Native Android build is handled via Gradle (`./gradlew assembleDebug`).
+- **PWA Mirroring:** The `index.html` in the root acts as a fallback landing page for the GitHub Pages deployment to prevent 404 errors during distribution.
 
-## 7. Implementation Checklist
-- [x] Implement the cursor on z-index 1000+.
-- [x] All interactive elements must have a unique `id`.
-- [x] Use `AnimatePresence` for modal transitions.
-- [x] Trigger haptic feedback on state changes and successful clicks.
-- [x] Ensure `viewport` meta prevents manual zoom and forces auto-scaling.
-- [x] Implement Persistence Layer for Favorite Apps (localStorage).
-- [x] Add Long Press (ContextMenu) for app deletion.
-- [x] Document Android API 30+ Compatibility requirements.
-- [x] Implement Cache Prevention and SW Cleanup.
+## 8. Implementation Checklist
+- [x] Assistive cursor on z-index 1000+.
+- [x] All interactive elements have a unique ID registered in `LauncherViewModel`.
+- [x] Fullscreen mode without ActionBar for maximum screen real estate.
+- [x] Haptic feedback on all critical interactions.
+- [x] High-performance app list loading (Async/Coroutines).
+- [x] Flashlight toggle with hardware compatibility.
+- [x] Dynamic grid for favorite apps.
+
