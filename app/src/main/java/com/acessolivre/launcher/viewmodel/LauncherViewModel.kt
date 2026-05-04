@@ -72,6 +72,15 @@ class LauncherViewModel(context: Context) : ViewModel() {
     }
 
     fun isFirstRun(): Boolean = prefs.isFirstRun()
+
+    // State: Tutorial
+    private val _tutorialEnabled = MutableStateFlow(prefs.isTutorialEnabled())
+    val tutorialEnabled: StateFlow<Boolean> = _tutorialEnabled
+
+    fun setTutorialEnabled(enabled: Boolean) {
+        _tutorialEnabled.value = enabled
+        prefs.saveTutorialEnabled(enabled)
+    }
     
     // State: Apps
     private val _allApps = MutableStateFlow<List<AppInfo>>(emptyList())

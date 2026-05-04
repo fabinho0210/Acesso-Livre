@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
         checkPermissions()
         viewModel.loadAllApps(this)
 
-        if (viewModel.isFirstRun()) {
+        if (viewModel.isFirstRun() && viewModel.tutorialEnabled.value) {
             voice.speak("Bem-vindo ao Acesso Livre. Para navegar, deslize o dedo na área amarela inferior. Quando o círculo vermelho estiver sobre um botão por algum tempo, ele será clicado automaticamente.")
         }
 
@@ -212,6 +212,15 @@ class MainActivity : ComponentActivity() {
                                         ThemeButton("Branco", Color(0xFFFFFFFF), Color.Black) { viewModel.setTheme("CLOUD") }
                                         ThemeButton("Preto", Color(0xFF18181B), Color.White) { viewModel.setTheme("NIGHT") }
                                         ThemeButton("Azul", Color(0xFF1E40AF), Color.White) { viewModel.setTheme("OCEAN") }
+                                    }
+                                    
+                                    val isTutorialOn by viewModel.tutorialEnabled.collectAsState()
+                                    Button(
+                                        onClick = { viewModel.setTutorialEnabled(!isTutorialOn) },
+                                        modifier = Modifier.padding(top = 16.dp).border(4.dp, Color.Black, RoundedCornerShape(12.dp)),
+                                        colors = ButtonDefaults.buttonColors(containerColor = if (isTutorialOn) Color.Green else Color.Gray)
+                                    ) {
+                                        Text(if (isTutorialOn) "TUTORIAL: LIGADO" else "TUTORIAL: DESLIGADO", fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
                                     }
                                 }
                             }
@@ -479,6 +488,14 @@ class MainActivity : ComponentActivity() {
             }
             command.contains("horas") || command.contains("time") || command.contains("tiempo") -> {
                 voice.speak(getString(R.string.current_time, viewModel.currentTime.value))
+            }
+            command.contains("desativar") && command.contains("tutorial") -> {
+                viewModel.setTutorialEnabled(false)
+                voice.speak("Tutorial desativado.")
+            }
+            command.contains("ativar") && command.contains("tutorial") -> {
+                viewModel.setTutorialEnabled(true)
+                voice.speak("Tutorial ativado. Ele será reproduzido na próxima vez que o app abrir.")
             }
             command.contains("socorro") || command.contains("emergência") || command.contains("sos") -> {
                 sendSos()

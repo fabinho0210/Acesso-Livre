@@ -65,11 +65,24 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 ### Battery & Connectivity
 - **Monitoring:** `BroadcastReceiver` in `LauncherViewModel` for real-time battery level and state tracking.
 
+### SOS & Emergency
+- **Logic:** Sends an SMS to the `sos_contact` stored in preferences.
+- **Content:** Includes a Google Maps URL with latitude/longitude fetched via `LocationManager`.
+- **Activation:** Voice command "Socorro/Emergência" or a dedicated red SOS button.
+
+### Tutorial & First Run
+- **Logic:** Checks `isFirstRun` and `tutorialEnabled`.
+- **Voice Help:** Explains trackpad and dwell-clicking logic on first launch.
+- **Toggle:** Can be disabled via "Desativar tutorial" voice command or in the configuration menu.
+
 ## 6. Persistence Map (Preferences)
 - `favorites`: Set of package names for the main grid.
 - `lock_edit`: Boolean indicating if "Modo Configuração" is disabled.
 - `dwell_enabled`: Boolean for the dwell-click helper.
 - `font_size`: Float for dynamic text scaling (Default: 22f).
+- `theme_mode`: String (CLASSIC, CLOUD, NIGHT, OCEAN).
+- `sos_contact`: String (Phone number for emergency SMS).
+- `tutorial_enabled`: Boolean (Controls the opening tutorial).
 
 ## 7. Build & Deployment (CI/CD)
 - **Environment:** Node.js 24+ for the deployment runner.

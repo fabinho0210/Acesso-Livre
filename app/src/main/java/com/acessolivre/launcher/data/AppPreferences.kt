@@ -40,4 +40,12 @@ class AppPreferences(context: Context) {
         if (first) prefs.edit().putBoolean("first_run", false).apply()
         return first
     }
+
+    fun saveTutorialEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("tutorial_enabled", enabled).apply()
+    }
+
+    fun isTutorialEnabled(): Boolean {
+        return prefs.getBoolean("tutorial_enabled", true)
+    }
 }
