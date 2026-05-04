@@ -54,6 +54,6 @@ dependencies {
     // Persistência e JSON
     implementation 'com.google.code.gson:gson:2.10.1'
     
-    // Icones do Android - Usando apenas o core para economizar memória
-    // implementation "androidx.compose.material:material-icons-extended"
+    // Icones do Android
+    implementation "androidx.compose.material:material-icons-extended"
 }

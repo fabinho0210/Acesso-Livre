@@ -32,17 +32,17 @@ fun SystemControlsBar(
     ) {
         // Volume Menos
         IconButton(onClick = onVolumeDown) {
-            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.volume_down), tint = iconColor)
+            Icon(Icons.Default.VolumeDown, contentDescription = stringResource(R.string.volume_down), tint = iconColor)
         }
         
         // Comando de Voz
         IconButton(onClick = onMicClick) {
-            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.voice_help), tint = micTint)
+            Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.voice_help), tint = micTint)
         }
 
         // Notificações
         IconButton(onClick = onNotifications) {
-            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.opening_notifications), tint = iconColor)
+            Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.opening_notifications), tint = iconColor)
         }
 
         // Navegação Virtual (Simulada ou via Accessibility)
@@ -51,12 +51,12 @@ fun SystemControlsBar(
         }
 
         IconButton(onClick = onRecents) {
-            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.voice_recents), tint = iconColor)
+            Icon(Icons.Default.History, contentDescription = stringResource(R.string.voice_recents), tint = iconColor)
         }
 
         // Volume Mais
         IconButton(onClick = onVolumeUp) {
-            Icon(Icons.Default.ArrowForward, contentDescription = stringResource(R.string.volume_up), tint = iconColor)
+            Icon(Icons.Default.VolumeUp, contentDescription = stringResource(R.string.volume_up), tint = iconColor)
         }
     }
 }

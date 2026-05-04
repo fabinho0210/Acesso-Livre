@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Native Android Launcher with accessibility features",
   "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/ && ls -la dist",
+    "build": "echo 'Native Android build trigger'",
     "lint": "echo 'No lint needed'"
   },
   "dependencies": {},

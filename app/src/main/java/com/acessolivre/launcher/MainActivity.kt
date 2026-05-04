@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(
-                                Icons.Default.Info,
+                                Icons.Default.BatteryChargingFull,
                                 contentDescription = null,
                                 tint = if (battery < 20) Color.Red else contentColor,
                                 modifier = Modifier.size(24.dp)
@@ -150,7 +150,7 @@ class MainActivity : ComponentActivity() {
                                 .background(cardBg, RoundedCornerShape(12.dp))
                         ) {
                             Icon(
-                                if (isLocked) Icons.Default.Lock else Icons.Default.Done,
+                                if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
                                 contentDescription = null,
                                 tint = contentColor
                             )
