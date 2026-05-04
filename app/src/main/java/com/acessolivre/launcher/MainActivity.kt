@@ -41,7 +41,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel = LauncherViewModel(this)
-        voice = VoiceAssistant(this) { command ->
+        voice = VoiceAssistant(this, { active ->
+            viewModel.setListening(active)
+        }) { command ->
             processVoiceCommand(command)
         }
         haptic = HapticService(this)
@@ -66,7 +68,10 @@ class MainActivity : ComponentActivity() {
             val time by viewModel.currentTime.collectAsState()
             val battery by viewModel.batteryLevel.collectAsState()
 
-            BoxWithConstraints(modifier = Modifier.fillMaxSize().background(themeBg)) {
+            val isListening by viewModel.isListening.collectAsState()
+        val isFlashlightOn by viewModel.isFlashlightOn.collectAsState()
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().background(themeBg)) {
                 val screenWidth = constraints.maxWidth.toFloat()
                 val screenHeight = constraints.maxHeight.toFloat()
                 
@@ -104,7 +109,7 @@ class MainActivity : ComponentActivity() {
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(
-                                Icons.Default.BatteryChargingFull,
+                                Icons.Default.Info,
                                 contentDescription = null,
                                 tint = if (battery < 20) Color.Red else contentColor,
                                 modifier = Modifier.size(24.dp)
@@ -145,7 +150,7 @@ class MainActivity : ComponentActivity() {
                                 .background(cardBg, RoundedCornerShape(12.dp))
                         ) {
                             Icon(
-                                if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                if (isLocked) Icons.Default.Lock else Icons.Default.Done,
                                 contentDescription = null,
                                 tint = contentColor
                             )
@@ -169,6 +174,7 @@ class MainActivity : ComponentActivity() {
                             haptic.click()
                             voice.startListening()
                         },
+                        isListening = isListening,
                         onBack = { 
                             haptic.click()
                             LauncherAccessibilityService.performGlobalBack()
@@ -227,6 +233,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     TrackpadArea(
+                        isListening = isListening,
                         onMove = { dx, dy -> 
                             viewModel.updateCursor(dx, dy, screenWidth, screenHeight) { targetId ->
                                 haptic.success()
@@ -331,12 +338,18 @@ class MainActivity : ComponentActivity() {
     private fun processVoiceCommand(command: String) {
         val allApps = viewModel.allApps.value
         val locale = Locale.getDefault().language
+        val isLocked = viewModel.isEditLocked.value
         
-        // Comandos mapeados por idioma
         val cmdOpen = when(locale) {
             "pt" -> "abrir"
             "es" -> "abrir"
             else -> "open"
+        }
+
+        val cmdRemove = when(locale) {
+            "pt" -> "remover"
+            "es" -> "eliminar"
+            else -> "remove"
         }
         
         when {
@@ -350,11 +363,46 @@ class MainActivity : ComponentActivity() {
                     voice.speak(getString(R.string.app_not_found, appName))
                 }
             }
+
+            command.contains(cmdRemove) -> {
+                val appName = command.replace(cmdRemove, "").trim().lowercase()
+                val favs = viewModel.favoriteApps.value
+                val targetApp = favs.find { it.label.lowercase().contains(appName) }
+                if (targetApp != null) {
+                    viewModel.toggleFavorite(this, targetApp.packageName)
+                    voice.speak("Removido " + targetApp.label)
+                } else {
+                    voice.speak(getString(R.string.app_not_found, appName))
+                }
+            }
+
+            command.contains("configura") || command.contains("ajuste") || command.contains("ajustes") -> {
+                viewModel.toggleEditLocked()
+                val status = if (viewModel.isEditLocked.value) "Travado" else "Destravado"
+                voice.speak("Configurações: $status")
+            }
+
+            (command.contains("adicionar") || command.contains("escolher")) && command.contains("app") -> {
+                if (isLocked) {
+                    voice.speak("As configurações estão travadas. Destrave primeiro.")
+                } else {
+                    viewModel.toggleAppSelection()
+                    voice.speak(getString(R.string.btn_select_apps))
+                }
+            }
+
+            command.contains("fechar") || command.contains("encerrar") -> {
+                if (viewModel.showAppSelection.value) {
+                    viewModel.toggleAppSelection()
+                    voice.speak(getString(R.string.btn_close))
+                }
+            }
+
             command.contains("volume") && (command.contains("mais") || command.contains("up") || command.contains("más")) -> {
                 viewModel.adjustVolume(true)
                 voice.speak(getString(R.string.volume_up))
             }
-            command.contains("volume") && (command.contains("menos") || command.contains("down") || command.contains("menos")) -> {
+            command.contains("volume") && (command.contains("menos") || command.contains("down") || command.contains("bajo")) -> {
                 viewModel.adjustVolume(false)
                 voice.speak(getString(R.string.volume_down))
             }
@@ -362,13 +410,18 @@ class MainActivity : ComponentActivity() {
                 viewModel.expandNotifications(this)
                 voice.speak(getString(R.string.opening_notifications))
             }
+            command.contains("lanterna") || command.contains("flashlight") || command.contains("linterna") -> {
+                viewModel.toggleFlashlight(this)
+                val status = if (viewModel.isFlashlightOn.value) "Ligada" else "Desligada"
+                voice.speak("Lanterna: $status")
+            }
             command.contains("horas") || command.contains("time") || command.contains("tiempo") -> {
                 voice.speak(getString(R.string.current_time, viewModel.currentTime.value))
             }
-            command.contains("bateria") || command.contains("battery") -> {
+            command.contains("bateria") || command.contains("battery") || command.contains("batería") -> {
                 voice.speak(getString(R.string.battery_status, viewModel.batteryLevel.value))
             }
-            command.contains("voltar") || command.contains("back") || command.contains("atrás") -> {
+            command.contains("voltar") || command.contains("back") || command.contains("atrás") || command.contains("regresar") -> {
                 LauncherAccessibilityService.performGlobalBack()
                 voice.speak(getString(R.string.voice_back))
             }
@@ -379,6 +432,9 @@ class MainActivity : ComponentActivity() {
             command.contains("recentes") || command.contains("recent") || command.contains("recientes") -> {
                 LauncherAccessibilityService.performGlobalRecents()
                 voice.speak(getString(R.string.voice_recents))
+            }
+            command.contains("ajuda") || command.contains("help") || command.contains("ayuda") -> {
+                voice.speak(getString(R.string.voice_help))
             }
             else -> {
                 voice.speak(getString(R.string.voice_unknown, command))

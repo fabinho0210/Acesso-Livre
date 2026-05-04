@@ -7,11 +7,13 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import java.util.*
 
 class VoiceAssistant(
     private val context: Context,
+    private val onStateChange: (Boolean) -> Unit,
     private val onCommand: (String) -> Unit
 ) : TextToSpeech.OnInitListener {
     private var tts: TextToSpeech = TextToSpeech(context, this)
@@ -28,15 +30,20 @@ class VoiceAssistant(
             speechRecognizer?.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
                     Log.d("VoiceAssistant", "Pronto para ouvir")
+                    onStateChange(true)
                 }
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {}
                 override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
+                override fun onEndOfSpeech() {
+                    onStateChange(false)
+                }
                 override fun onError(error: Int) {
                     Log.e("VoiceAssistant", "Erro reconhecimento: $error")
+                    onStateChange(false)
                 }
                 override fun onResults(results: Bundle?) {
+                    onStateChange(false)
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     matches?.firstOrNull()?.let { command ->
                         onCommand(command.lowercase())
@@ -54,19 +61,43 @@ class VoiceAssistant(
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            // Tenta forçar modo offline se disponível
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
         speechRecognizer?.startListening(intent)
-        speak(context.getString(R.string.voice_help))
+    }
+
+    fun stopListening() {
+        speechRecognizer?.stopListening()
+    }
+
+    fun speak(text: String, onDone: (() -> Unit)? = null) {
+        if (!isReady) return
+        
+        val params = Bundle()
+        val targetUtteranceId = UUID.randomUUID().toString()
+        
+        if (onDone != null) {
+            tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(uid: String) {}
+                override fun onDone(uid: String) {
+                    if (uid == targetUtteranceId) onDone()
+                }
+                @Deprecated("Deprecated in Java")
+                override fun onError(uid: String) {}
+                override fun onError(uid: String, errorCode: Int) {
+                    // No-op
+                }
+            })
+        }
+
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, targetUtteranceId)
     }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             val locale = Locale.getDefault()
-            val result = tts.setLanguage(locale)
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("TTS", "Language not supported or missing data, falling back to US")
-                tts.language = Locale.US
-            }
+            tts.language = locale
             isReady = true
         }
     }

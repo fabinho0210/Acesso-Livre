@@ -7,7 +7,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.acessolivre.launcher.R
 
 @Composable
 fun SystemControlsBar(
@@ -15,10 +17,13 @@ fun SystemControlsBar(
     onVolumeDown: () -> Unit,
     onNotifications: () -> Unit,
     onMicClick: () -> Unit,
+    isListening: Boolean = false,
     iconColor: Color = Color.Black,
     onBack: () -> Unit,
     onRecents: () -> Unit
 ) {
+    val micTint = if (isListening) Color.Red else iconColor
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -27,31 +32,31 @@ fun SystemControlsBar(
     ) {
         // Volume Menos
         IconButton(onClick = onVolumeDown) {
-            Icon(Icons.Default.VolumeDown, contentDescription = "Volume Baixo", tint = iconColor)
+            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.volume_down), tint = iconColor)
         }
         
         // Comando de Voz
         IconButton(onClick = onMicClick) {
-            Icon(Icons.Default.Mic, contentDescription = "Falar comando", tint = iconColor)
+            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.voice_help), tint = micTint)
         }
 
         // Notificações
         IconButton(onClick = onNotifications) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = iconColor)
+            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.opening_notifications), tint = iconColor)
         }
 
         // Navegação Virtual (Simulada ou via Accessibility)
         IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = iconColor)
+            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.voice_back), tint = iconColor)
         }
 
         IconButton(onClick = onRecents) {
-            Icon(Icons.Default.History, contentDescription = "Recentes", tint = iconColor)
+            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.voice_recents), tint = iconColor)
         }
 
         // Volume Mais
         IconButton(onClick = onVolumeUp) {
-            Icon(Icons.Default.VolumeUp, contentDescription = "Volume Alto", tint = iconColor)
+            Icon(Icons.Default.ArrowForward, contentDescription = stringResource(R.string.volume_up), tint = iconColor)
         }
     }
 }

@@ -1,8 +1,11 @@
 package com.acessolivre.launcher.viewmodel
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ViewModel
@@ -10,18 +13,14 @@ import com.acessolivre.launcher.data.AppPreferences
 import com.acessolivre.launcher.ui.components.RectData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class AppInfo(
     val label: String,
     val packageName: String,
     val icon: android.graphics.drawable.Drawable? = null
 )
-
-import android.content.BroadcastReceiver
-import android.content.IntentFilter
-import android.os.BatteryManager
-import java.text.SimpleDateFormat
-import java.util.*
 
 class LauncherViewModel(context: Context) : ViewModel() {
     private val prefs = AppPreferences(context)
@@ -97,6 +96,25 @@ class LauncherViewModel(context: Context) : ViewModel() {
         context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
     }
 
+    private val _isListening = MutableStateFlow(false)
+    val isListening: StateFlow<Boolean> = _isListening
+
+    private val _isFlashlightOn = MutableStateFlow(false)
+    val isFlashlightOn: StateFlow<Boolean> = _isFlashlightOn
+
+    fun setListening(active: Boolean) {
+        _isListening.value = active
+    }
+
+    fun toggleFlashlight(context: Context) {
+        try {
+            val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
+            val cameraId = cameraManager.cameraIdList[0]
+            _isFlashlightOn.value = !_isFlashlightOn.value
+            cameraManager.setTorchMode(cameraId, _isFlashlightOn.value)
+        } catch (e: Exception) {
+            _isFlashlightOn.value = false
+        }
     fun loadAllApps(context: Context) {
         val pm = context.packageManager
         val mainIntent = Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER)
