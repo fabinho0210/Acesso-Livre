@@ -32,12 +32,38 @@ android {
         }
     }
 
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            storeFile rootProject.file('release.keystore')
+            storePassword 'password'
+            keyAlias 'releaseKey'
+            keyPassword 'password'
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    // Task to generate the keystore if it doesn't exist
+    tasks.register('genReleaseKeystore', Exec) {
+        workingDir '..'
+        commandLine 'keytool', '-genkey', '-v', '-keystore', 'release.keystore', '-alias', 'releaseKey', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000', '-storepass', 'password', '-keypass', 'password', '-dname', 'CN=Release, OU=Dev, O=AcessoLivre, L=City, S=State, C=BR'
+        ignoreExitValue true
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

@@ -17,7 +17,9 @@ captures/
 .cxx/
 *.keystore
 !debug.keystore
+!release.keystore
 !AcessoLivre.apk
+!AcessoLivre-Release.apk
 
 # IntelliJ/Android Studio
 .idea/
