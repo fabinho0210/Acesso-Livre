@@ -18,8 +18,8 @@ captures/
 *.keystore
 !debug.keystore
 !release.keystore
-!AcessoLivre.apk
-!AcessoLivre-Release.apk
+!app/AcessoLivre.apk
+!app/AcessoLivre-Release.apk
 
 # IntelliJ/Android Studio
 .idea/
