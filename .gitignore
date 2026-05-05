@@ -6,3 +6,25 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Android
+.gradle/
+local.properties
+.navigation/
+captures/
+*.hprof
+.externalNativeBuild/
+.cxx/
+*.keystore
+!debug.keystore
+
+# IntelliJ/Android Studio
+.idea/
+*.iml
+out/
+
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar

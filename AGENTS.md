@@ -85,6 +85,7 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - `tutorial_enabled`: Boolean (Controls the opening tutorial).
 
 ## 7. Build & Deployment (CI/CD)
+- **Local Development:** Requires **JDK 17** (mandatory for Gradle 8.3+) and Android Studio Hedgehog or newer.
 - **Environment:** Node.js 24+ for the deployment runner.
 - **Build Script:** Native Android build is handled via Gradle (`./gradlew assembleDebug`).
 - **Optimization:** `minifyEnabled true` and `shrinkResources true` are active in the `release` build type to reduce APK size and obfuscate code.
