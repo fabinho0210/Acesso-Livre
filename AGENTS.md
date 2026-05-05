@@ -88,6 +88,7 @@ The launcher is designed for users with severe motor impairments (Disarthria, Ce
 - **Local Development:** Requires **JDK 17** (mandatory for Gradle 8.3+) and Android Studio Hedgehog or newer.
 - **Environment:** Node.js 24+ for the deployment runner.
 - **Build Script:** Native Android build is handled via Gradle (`./gradlew assembleDebug`).
+- **Artifacts:** The latest debug APK is stored at the root as `AcessoLivre.apk`.
 - **Optimization:** `minifyEnabled true` and `shrinkResources true` are active in the `release` build type to reduce APK size and obfuscate code.
 - **Rules:** custom ProGuard rules are defined in `/app/proguard-rules.pro` to protect Gson serialization and Compose stability.
 - **PWA Mirroring:** The `index.html` in the root acts as a fallback landing page for the GitHub Pages deployment.
